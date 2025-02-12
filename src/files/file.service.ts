@@ -5,7 +5,6 @@ import { join, resolve } from 'path';
 import * as fs from 'fs';
 import * as archiver from 'archiver';
 import * as mime from 'mime-types';
-import * as sharp from 'sharp';
 import { Express } from 'express';
 import { FILE_CONFIG } from './config/file.config';
 import { VIEW_CONFIG } from './config/view.config';
@@ -617,14 +616,7 @@ export class FileService implements OnModuleInit {
         try {
             // Handle image previews
             if (VIEW_CONFIG.IMAGE_TYPES.includes(mimeType)) {
-                const thumbnail = await sharp(filePath)
-                    .resize({
-                        width: VIEW_CONFIG.THUMBNAIL_OPTIONS.width,
-                        height: VIEW_CONFIG.THUMBNAIL_OPTIONS.height,
-                        fit: sharp.fit.inside,
-                        withoutEnlargement: true
-                    })
-                    .toBuffer();
+                const thumbnail = fs.readFileSync(filePath);
                 
                 res.setHeader('Content-Type', mimeType);
                 return res.send(thumbnail);
@@ -696,15 +688,7 @@ export class FileService implements OnModuleInit {
         try {
             // Handle image thumbnails
             if (VIEW_CONFIG.IMAGE_TYPES.includes(mimeType)) {
-                const thumbnail = await sharp(filePath)
-                    .resize({
-                        width: VIEW_CONFIG.THUMBNAIL_OPTIONS.width,
-                        height: VIEW_CONFIG.THUMBNAIL_OPTIONS.height,
-                        fit: 'contain',
-                        background: VIEW_CONFIG.THUMBNAIL_OPTIONS.background
-                    })
-                    .jpeg({ quality: VIEW_CONFIG.THUMBNAIL_OPTIONS.quality })
-                    .toBuffer();
+                const thumbnail = fs.readFileSync(filePath);
                 
                 res.setHeader('Content-Type', 'image/jpeg');
                 return res.send(thumbnail);

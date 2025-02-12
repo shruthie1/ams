@@ -1478,7 +1478,6 @@ const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const path_1 = __webpack_require__(/*! path */ "path");
 const fs = __webpack_require__(/*! fs */ "fs");
 const archiver = __webpack_require__(/*! archiver */ "archiver");
-const sharp = __webpack_require__(/*! sharp */ "sharp");
 const file_config_1 = __webpack_require__(/*! ./config/file.config */ "./src/files/config/file.config.ts");
 const view_config_1 = __webpack_require__(/*! ./config/view.config */ "./src/files/config/view.config.ts");
 const fs_1 = __webpack_require__(/*! fs */ "fs");
@@ -2011,14 +2010,7 @@ let FileService = FileService_1 = class FileService {
         }
         try {
             if (view_config_1.VIEW_CONFIG.IMAGE_TYPES.includes(mimeType)) {
-                const thumbnail = await sharp(filePath)
-                    .resize({
-                    width: view_config_1.VIEW_CONFIG.THUMBNAIL_OPTIONS.width,
-                    height: view_config_1.VIEW_CONFIG.THUMBNAIL_OPTIONS.height,
-                    fit: sharp.fit.inside,
-                    withoutEnlargement: true
-                })
-                    .toBuffer();
+                const thumbnail = fs.readFileSync(filePath);
                 res.setHeader('Content-Type', mimeType);
                 return res.send(thumbnail);
             }
@@ -2078,15 +2070,7 @@ let FileService = FileService_1 = class FileService {
         const thumbnailPath = this.getSafePath(thumbnailsDir, `${folder}_${filename}.jpg`);
         try {
             if (view_config_1.VIEW_CONFIG.IMAGE_TYPES.includes(mimeType)) {
-                const thumbnail = await sharp(filePath)
-                    .resize({
-                    width: view_config_1.VIEW_CONFIG.THUMBNAIL_OPTIONS.width,
-                    height: view_config_1.VIEW_CONFIG.THUMBNAIL_OPTIONS.height,
-                    fit: 'contain',
-                    background: view_config_1.VIEW_CONFIG.THUMBNAIL_OPTIONS.background
-                })
-                    .jpeg({ quality: view_config_1.VIEW_CONFIG.THUMBNAIL_OPTIONS.quality })
-                    .toBuffer();
+                const thumbnail = fs.readFileSync(filePath);
                 res.setHeader('Content-Type', 'image/jpeg');
                 return res.send(thumbnail);
             }
@@ -2574,16 +2558,6 @@ module.exports = require("mime-types");
 /***/ ((module) => {
 
 module.exports = require("multer");
-
-/***/ }),
-
-/***/ "sharp":
-/*!************************!*\
-  !*** external "sharp" ***!
-  \************************/
-/***/ ((module) => {
-
-module.exports = require("sharp");
 
 /***/ }),
 

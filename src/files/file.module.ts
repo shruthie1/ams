@@ -4,14 +4,10 @@ import { FileService } from './file.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { ScheduleModule } from '@nestjs/schedule';
 import { FILE_CONFIG } from './config/file.config';
-
-export interface FileModuleOptions {
-  storagePath?: string;
-  maxFileSize?: number;
-  allowedFileTypes?: string[];
-}
-
-export const FILE_MODULE_OPTIONS = 'FILE_MODULE_OPTIONS';
+import {
+  FileModuleOptions,
+  FILE_MODULE_OPTIONS,
+} from './file.module.interface';
 
 @Module({})
 export class FileModule {

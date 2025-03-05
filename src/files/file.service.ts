@@ -35,7 +35,10 @@ import {
   FileErrorCodes,
 } from './utils/file-operation-error';
 import { withFileOperation } from './utils/file-operation-wrapper';
-import { FILE_MODULE_OPTIONS, FileModuleOptions } from './file.module';
+import {
+  FILE_MODULE_OPTIONS,
+  FileModuleOptions,
+} from './file.module.interface';
 
 type MimeType =
   | (typeof VIEW_CONFIG.IMAGE_TYPES)[number]

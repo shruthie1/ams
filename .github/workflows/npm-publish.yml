@@ -30,7 +30,7 @@ jobs:
 
       # Debug: Print masked NPM_TOKEN
       - name: Debug - Print masked NPM_TOKEN
-        run: "echo 'NPM_TOKEN starts with: ${NPM_TOKEN:0:5}********'"
+        run: echo "NPM_TOKEN starts with: ${NPM_TOKEN:0:5}********"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 

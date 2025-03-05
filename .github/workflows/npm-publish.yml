@@ -44,17 +44,13 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git fetch origin main
-          git checkout main
-          git pull origin main
-          git status
+          git pull origin ${{ steps.branch_name.outputs.branch }}  # Pull the latest changes from the current branch
           git diff --quiet || (git add . && git commit -m "chore: commit pre-bump changes")
           npm version patch -m "Bump version to %s [skip ci]"
-          git push
-          # git status
-          # git add package.json  # Stage only package.json
-          # git remote add action https://${{ secrets.GH_TOKEN }}@github.com/shruthie1/ams.git
-          # git push action main  # Push to main branch
+          git status
+          git add .  # Stage all changes, including package-lock.json and dist folder
+          git commit -m "Bump version" || echo "No changes to commit"
+          git push origin HEAD:${{ steps.branch_name.outputs.branch }}
 
       - name: Publish to NPM
         run: npm publish --access public

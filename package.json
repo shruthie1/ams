@@ -1,6 +1,6 @@
 {
-  "name": "amsssk",
-  "version": "0.0.1",
+  "name": "@mad_man/amsssk",
+  "version": "1.0.0",
   "description": "NestJS AMS Library for file management",
   "author": "Mad_man",
   "keywords": [

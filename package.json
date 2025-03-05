@@ -40,8 +40,9 @@
     "test:coverage": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prepare": "npm run build",
-
-    "preversion": "npm run lint"
+    "prepublish": "npm run prepare",
+    "preversion": "npm run lint",
+    "postpublish": "echo 'Package published!'"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",

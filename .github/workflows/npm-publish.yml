@@ -15,19 +15,55 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Debug - List repository contents
+        run: |
+          pwd
+          ls -la
+          git status
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
           registry-url: "https://registry.npmjs.org/"
 
+      - name: Debug - Node and npm info
+        run: |
+          node --version
+          npm --version
+          npm config list
+
       - name: Configure npm authentication
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Debug - Check npm configuration
+        run: |
+          cat ~/.npmrc
+          npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
         run: npm install
 
+      - name: Debug - List installed packages
+        run: |
+          npm list --depth=0
+          cat package.json
+
+      - name: Debug - Check package contents
+        run: |
+          npm pack --dry-run
+          npm version
+
       - name: Publish to npm
         run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Debug - Verify publish result
+        run: |
+          echo "Package published successfully"
+          npm view $(node -p "require('./package.json').name") version
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

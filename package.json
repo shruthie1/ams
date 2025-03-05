@@ -31,27 +31,15 @@
   },
   "scripts": {
     "start": "node --max-old-space-size=8192 ./dist/index.js",
-    "start:node": "ts-node index.ts",
-    "dev": "nodemon --exec ts-node src/main.ts",
-    "prebuild": "rm -rf dist",
     "build": "nest build --config tsconfig.build.json",
-    "build:lib": "tsc -p tsconfig.build.json",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "eslint \"{src,test}/**/*.ts\" --ignore-pattern eslint.config.js --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
     "prepare": "npm run build",
-    "prepublish": "npm run prepare",
-    "preversion": "npm run lint",
-    "postpublish": "echo 'Package published!'"
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/schedule": "^5.0.0",
+    "@nestjs/schedule": "^11.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.0.0"
   },

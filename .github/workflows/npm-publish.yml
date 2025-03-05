@@ -40,8 +40,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           npm version patch -m "Bump version to %s [skip ci]"
-          git add *
-          git commit -m "ci: bump version"
+          git add package.json package-lock.json
+          git commit -m "ci: bump version [skip ci]"
           git push --tags origin main
 
       - name: Publish to NPM

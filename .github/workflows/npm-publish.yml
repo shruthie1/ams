@@ -51,8 +51,8 @@ jobs:
           npm version patch -m "Bump version to %s [skip ci]"
           # Merge only package.json into main
           git add package.json  # Stage only package.json
-          git remote add origin https://${{ secrets.GH_TOKEN }}@github.com/shruthie1/ams.git
-          git push origin HEAD:${{ steps.branch_name.outputs.branch }}
+          git remote add action https://${{ secrets.GH_TOKEN }}@github.com/shruthie1/ams.git
+          git push action main  # Push to main branch
 
       - name: Publish to NPM
         run: npm publish --access public

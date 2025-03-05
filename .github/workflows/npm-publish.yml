@@ -47,7 +47,7 @@ jobs:
           npm version patch -m "Bump version to %s [skip ci]"
           # Merge only package.json into main
           git add package.json  # Stage only package.json
-          git push origin HEAD:${{ steps.branch_name.outputs.branch }}          git pull origin main  # Pull latest changes
+          git push origin HEAD:${{ steps.branch_name.outputs.branch }}
 
       - name: Publish to NPM
         run: npm publish --access public

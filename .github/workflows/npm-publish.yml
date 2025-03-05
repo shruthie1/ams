@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Publish to npm (Debug Mode)
 
 on:
   push:
@@ -15,6 +15,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Debugging: Print GitHub Environment
+      - name: Debug - Print GitHub Environment
+        run: env | sort
+
+      # Set up Node.js with caching
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -23,27 +28,73 @@ jobs:
           always-auth: true
           cache: "npm"
 
+      # Debug: Print masked NPM_TOKEN
+      - name: Debug - Print masked NPM_TOKEN
+        run: "echo 'NPM_TOKEN starts with: ${NPM_TOKEN:0:5}********'"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Debug: Check if NPM_TOKEN is set
+      - name: Debug - Check NPM_TOKEN length
+        run: |
+          if [[ -z "${NPM_TOKEN}" ]]; then
+            echo "ERROR: NPM_TOKEN is not set!"
+            exit 1
+          else
+            echo "NPM_TOKEN length: ${#NPM_TOKEN}"
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Configure npm authentication and debug .npmrc
       - name: Configure npm authentication
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
           chmod 0600 ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Verify npm authentication
+      - name: Debug - Check .npmrc content
+        run: cat ~/.npmrc
+
+      # Debug: Check Node.js and NPM versions
+      - name: Debug - Node.js and NPM versions
         run: |
-          cat ~/.npmrc
-          npm whoami
+          node --version
+          npm --version
+          npm config list
+
+      # Debug: Test NPM authentication
+      - name: Debug - Test npm authentication
+        run: |
+          npm whoami || { echo "ERROR: npm authentication failed!"; exit 1; }
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # Install dependencies
       - name: Install dependencies
         run: npm ci
 
+      # Debug: List installed packages
+      - name: Debug - List installed packages
+        run: npm list --depth=0
+
+      # Check package.json contents
+      - name: Debug - Check package.json
+        run: cat package.json
+
+      # Dry run to check package contents before publishing
+      - name: Debug - Check package before publishing
+        run: npm pack --dry-run
+
+      # Publish to npm
       - name: Publish to npm
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Verify publish result
+      # Verify if package was published successfully
+      - name: Debug - Verify published package version
         run: npm view $(node -p "require('./package.json').name") version
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

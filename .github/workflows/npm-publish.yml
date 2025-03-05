@@ -51,6 +51,7 @@ jobs:
           git checkout ${{ github.ref_name }} -- package.json  # Checkout only package.json
           git add package.json  # Stage only package.json
           git commit -m "Update package.json from ${{ github.ref_name }}" || echo "No changes to commit"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin main  # Push only package.json changes to main
 
 

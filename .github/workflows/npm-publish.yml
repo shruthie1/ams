@@ -50,10 +50,11 @@ jobs:
           git status
           git diff --quiet || (git add . && git commit -m "chore: commit pre-bump changes")
           npm version patch -m "Bump version to %s [skip ci]"
-          git status
-          git add package.json  # Stage only package.json
-          git remote add action https://${{ secrets.GH_TOKEN }}@github.com/shruthie1/ams.git
-          git push action main  # Push to main branch
+          git push
+          # git status
+          # git add package.json  # Stage only package.json
+          # git remote add action https://${{ secrets.GH_TOKEN }}@github.com/shruthie1/ams.git
+          # git push action main  # Push to main branch
 
       - name: Publish to NPM
         run: npm publish --access public

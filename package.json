@@ -1,5 +1,5 @@
 {
-  "name": "@mad_man/ams",
+  "name": "ams-ssk",
   "version": "0.0.1",
   "description": "NestJS AMS Library for file management",
   "author": "Mad_man",

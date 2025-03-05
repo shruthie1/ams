@@ -22,54 +22,136 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+# AMS (Asset Management System) Library
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+A NestJS library for file management and asset operations that can be integrated into any NestJS application.
 
-## Project setup
+## Features
 
-```bash
-$ npm install
-```
+- File and folder management (create, read, update, delete)
+- File uploads and downloads
+- File metadata operations
+- JSON file operations with path-based queries
+- File thumbnails and previews
+- Folder archiving
+- File search capabilities
+- File sharing links
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+## Installation
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install ams
 ```
 
-## Deployment
+## Usage
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Basic Usage
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+In your NestJS application, import the `FileModule` into your AppModule:
 
-```bash
-$ npm install -g mau
-$ mau deploy
+```typescript
+import { Module } from '@nestjs/common';
+import { FileModule } from 'ams';
+
+@Module({
+  imports: [
+    FileModule.register(), // Use default configuration
+  ],
+})
+export class AppModule {}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Configuration Options
+
+You can customize the module's behavior by using the `forRoot()` method:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { FileModule } from 'ams';
+
+@Module({
+  imports: [
+    FileModule.forRoot({
+      storagePath: './custom-uploads',
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      allowedFileTypes: ['image/jpeg', 'image/png', 'application/pdf'],
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Using as a Global Module
+
+You can also make the module available globally:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { FileModule } from 'ams';
+
+@Module({
+  imports: [
+    FileModule.forRootGlobal({
+      storagePath: './global-uploads',
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Using the FileService
+
+Once you've imported the module, you can inject the FileService into your controllers or services:
+
+```typescript
+import { Controller, Get, Inject } from '@nestjs/common';
+import { FileService } from 'ams';
+
+@Controller('my-files')
+export class MyFilesController {
+  constructor(private readonly fileService: FileService) {}
+
+  @Get('folders')
+  async listAllFolders() {
+    return this.fileService.listFolders();
+  }
+  
+  @Get('recent')
+  async getRecentFiles() {
+    return this.fileService.getRecentFiles();
+  }
+}
+```
+
+## Available Methods
+
+The FileService provides many methods for file and folder operations:
+
+- `listFolders()`: List all folders
+- `getFolderDetails(folder, page, limit)`: Get paginated folder contents
+- `createFolder(folderName)`: Create a new folder
+- `deleteFolder(folder)`: Delete an empty folder
+- `uploadFiles(folder, files, filenameQuery)`: Upload files to a folder
+- `downloadFile(folder, filename, res)`: Download a specific file
+- `getFileMetadata(folder, filename)`: Get metadata for a file
+- `moveFile(folder, filename, body)`: Move or rename a file
+- `copyFile(folder, filename, body)`: Copy a file
+- `deleteFile(folder, filename)`: Delete a file
+- `getJsonFile(folder, filename)`: Get content of a JSON file
+- `queryJsonFile(folder, filename, query)`: Query a JSON file using path notation
+- ... and many more
+
+## API Documentation
+
+After installing and configuring the module, you can access the Swagger documentation for the API endpoints at:
+
+```
+http://your-app-url/api-docs
+```
+
+## License
+
+MIT
 
 ## Resources
 

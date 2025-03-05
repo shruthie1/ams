@@ -122,17 +122,6 @@ function setupSwagger(app) {
     const config = new swagger_1.DocumentBuilder()
         .setTitle('File Storage API')
         .setVersion('1.0')
-        .addTag('Folder Management', 'Create, delete, and manage folders')
-        .addTag('File Operations', 'Upload, download, and manage files')
-        .addTag('File Metadata', 'View and modify file information')
-        .addTag('File Versions', 'Manage file versions')
-        .addTag('File Sharing', 'Generate and manage file sharing')
-        .addTag('File Locking', 'Lock and unlock files for editing')
-        .addTag('Search & Browse', 'Search and browse files and folders')
-        .addTag('JSON Operations', 'Special operations for JSON files')
-        .addServer('http://localhost:8000', 'Development Server')
-        .addServer('https://api.example.com', 'Production Server (Coming Soon)')
-        .addBearerAuth()
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
@@ -499,7 +488,7 @@ class ShareableLinkResponse {
 exports.ShareableLinkResponse = ShareableLinkResponse;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        example: 'http://localhost:8000/folders/docs/files/example.pdf?share=true',
+        example: 'https://promoteClients2.glitch.me/folders/docs/files/example.pdf?share=true',
         description: 'Generated shareable link for the file'
     }),
     __metadata("design:type", String)
@@ -897,7 +886,7 @@ __decorate([
     (0, swagger_1.ApiQuery)({ name: 'limit', required: false, description: 'Number of files per page' }),
     __param(0, (0, common_1.Param)('folder')),
     __param(1, (0, common_1.Query)('page', new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
-    __param(2, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(10), common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(20), common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Number, Number]),
     __metadata("design:returntype", Promise)

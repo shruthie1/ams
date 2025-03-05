@@ -1,0 +1,42 @@
+# Source files
+src/
+examples/
+test/
+
+# Config files
+.eslintrc.js
+.prettierrc
+.editorconfig
+.gitignore
+tsconfig.json
+tsconfig.build.json
+nest-cli.json
+webpack.config.js
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# Testing
+coverage/
+.nyc_output
+
+# Temp directories
+.tmp/
+temp/

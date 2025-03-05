@@ -34,16 +34,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Check for Version Change
-        id: check_version
+      - name: Auto-Bump Version
+        id: version_bump
         run: |
-          PREV_VERSION=$(git tag --list --sort=-v:refname | head -n 1)
-          CURR_VERSION=$(node -p "require('./package.json').version")
-          echo "Previous: $PREV_VERSION, Current: v$CURR_VERSION"
-          if [ "v$CURR_VERSION" == "$PREV_VERSION" ]; then
-            echo "No version change, skipping publish."
-            exit 1
-          fi
+          npm version patch -m "Bump version to %s [skip ci]"
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git commit -am "ci: bump version"
+          git push --tags origin main
 
       - name: Publish to NPM
         run: npm publish --access public

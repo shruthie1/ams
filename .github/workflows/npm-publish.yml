@@ -35,6 +35,10 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Determine branch name
+        id: branch_name
+        run: echo "::set-output name=branch::$(echo $GITHUB_REF | awk -F'/' '{print $3}')"
+
       - name: Auto-Bump Version
         id: version_bump
         run: |

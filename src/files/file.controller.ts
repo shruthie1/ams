@@ -75,7 +75,7 @@ function getSafePath(...segments: string[]): string {
 }
 @ApiTags('Folders & Files')
 @Injectable()
-@Controller()
+@Controller('files')
 export class FileController {
   private readonly logger = new Logger(FileController.name);
   private readonly fileService: FileService;

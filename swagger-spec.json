@@ -7,24 +7,1648 @@
         "parameters": [],
         "responses": {
           "200": {
+            "description": "The service is up and running"
+          }
+        },
+        "summary": "Health check endpoint",
+        "tags": [
+          "Health Check"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files": {
+      "post": {
+        "description": "Upload single or multiple files to a specified folder",
+        "operationId": "FileController_uploadFiles",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Target folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": false,
+            "in": "query",
+            "description": "Optional custom filename for single file upload",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "files"
+                ],
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Files to upload"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": ""
           }
         },
+        "summary": "Upload files to a folder",
         "tags": [
-          "App"
+          "Folders & Files"
+        ]
+      },
+      "get": {
+        "operationId": "FileController_listFiles",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List all files in a folder",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders": {
+      "get": {
+        "operationId": "FileController_listFolders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Folders listed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error while listing folders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all folders",
+        "tags": [
+          "Folders & Files",
+          "Folder Management"
+        ]
+      },
+      "post": {
+        "operationId": "FileController_createFolder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "folderName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Folder created successfully"
+          },
+          "400": {
+            "description": "Invalid folder name"
+          }
+        },
+        "summary": "Create a new folder",
+        "tags": [
+          "Folders & Files",
+          "Folder Management"
+        ]
+      }
+    },
+    "/files/folders/{folder}": {
+      "get": {
+        "operationId": "FileController_getFolderDetails",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of files per page",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Folder details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderDetailsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found"
+          }
+        },
+        "summary": "Get folder details and list files",
+        "tags": [
+          "Folders & Files"
+        ]
+      },
+      "delete": {
+        "operationId": "FileController_deleteFolder",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder to delete",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a folder and all its contents",
+        "tags": [
+          "Folders & Files",
+          "Folder Management"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/download": {
+      "get": {
+        "operationId": "FileController_downloadFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Download a file from a folder",
+        "tags": [
+          "Folders & Files",
+          "File Operations"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/metadata": {
+      "get": {
+        "operationId": "FileController_getFileMetadata",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File metadata retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileMetadataResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          }
+        },
+        "summary": "Get metadata of a file",
+        "tags": [
+          "Folders & Files",
+          "File Metadata"
+        ]
+      },
+      "put": {
+        "operationId": "FileController_updateFileMetadata",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newFilename": {
+                    "type": "string",
+                    "description": "New filename"
+                  },
+                  "newFolder": {
+                    "type": "string",
+                    "description": "New folder"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File metadata updated successfully"
+          },
+          "400": {
+            "description": "Invalid metadata"
+          },
+          "404": {
+            "description": "File not found"
+          }
+        },
+        "summary": "Update file metadata",
+        "tags": [
+          "Folders & Files",
+          "File Metadata"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/move": {
+      "put": {
+        "operationId": "FileController_moveFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Current folder of the file",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "Current file name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newFolder": {
+                    "type": "string"
+                  },
+                  "newFilename": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File moved successfully"
+          },
+          "400": {
+            "description": "Invalid destination"
+          },
+          "404": {
+            "description": "File not found"
+          }
+        },
+        "summary": "Move or rename a file",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/copy": {
+      "post": {
+        "operationId": "FileController_copyFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Source folder",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File to copy",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newFolder": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File copied successfully"
+          },
+          "400": {
+            "description": "Invalid destination"
+          },
+          "404": {
+            "description": "File not found"
+          }
+        },
+        "summary": "Copy a file to another location",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/download-all": {
+      "get": {
+        "operationId": "FileController_downloadAllFiles",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Download all files in a folder as a ZIP archive",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/temp-links": {
+      "get": {
+        "operationId": "FileController_getTemporaryLinks",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get temporary access links for all files in a folder",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/temp-link": {
+      "get": {
+        "operationId": "FileController_getTemporaryFileLink",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Generate a temporary access link for a file",
+        "tags": [
+          "Folders & Files",
+          "File Sharing"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/search": {
+      "get": {
+        "operationId": "FileController_searchFiles",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pattern",
+            "required": true,
+            "in": "query",
+            "description": "Regex pattern for matching filenames",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Search for files by name in a folder",
+        "tags": [
+          "Folders & Files",
+          "Search & Browse"
+        ]
+      }
+    },
+    "/files/json/folders/{folder}/files/{filename}": {
+      "get": {
+        "description": "Returns the complete contents of a JSON file",
+        "operationId": "FileController_getJsonFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON file contents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonFileResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JSON file not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error parsing JSON file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Retrieve the entire JSON file",
+        "tags": [
+          "Folders & Files",
+          "JSON Operations"
+        ]
+      }
+    },
+    "/files/json/folders/{folder}/files/{filename}/*path": {
+      "get": {
+        "description": "Returns a specific value from a JSON file using a path with / as separator",
+        "operationId": "FileController_getNestedJsonValue",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "required": true,
+            "in": "path",
+            "description": "Path to the nested value (e.g., user/profile/name)",
+            "schema": {
+              "example": [
+                "user",
+                "profile",
+                "name"
+              ],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON value retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JSON file not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Retrieve a nested value from a JSON file by key path",
+        "tags": [
+          "Folders & Files",
+          "JSON Operations"
+        ]
+      }
+    },
+    "/files/json/folders/{folder}/files/{filename}/query": {
+      "get": {
+        "description": "Query JSON data using dot notation and array indices. Example: users[0].profile.name",
+        "operationId": "FileController_queryJsonFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "required": true,
+            "in": "query",
+            "description": "JSON path query using dot notation (e.g., users[0].profile.name)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON value retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query format or path not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "JSON file not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Query a JSON file using dot notation",
+        "tags": [
+          "Folders & Files",
+          "JSON Operations"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}": {
+      "delete": {
+        "operationId": "FileController_deleteFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a file from a folder",
+        "tags": [
+          "Folders & Files",
+          "File Operations"
+        ]
+      },
+      "get": {
+        "operationId": "FileController_getFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Retrieve a file from a folder",
+        "tags": [
+          "Folders & Files",
+          "File Operations"
+        ]
+      }
+    },
+    "/files/folders/{folder}/size": {
+      "get": {
+        "operationId": "FileController_getFolderSize",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get the total size of a folder",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/thumbnail": {
+      "get": {
+        "operationId": "FileController_getThumbnail",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a thumbnail of an image or video file",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/{folder}/rename": {
+      "put": {
+        "operationId": "FileController_renameFolder",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Current folder name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newFolderName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Folder renamed successfully"
+          },
+          "400": {
+            "description": "Invalid folder name"
+          },
+          "404": {
+            "description": "Folder not found"
+          }
+        },
+        "summary": "Rename a folder",
+        "tags": [
+          "Folders & Files",
+          "Folder Management"
+        ]
+      }
+    },
+    "/files/folders/{folder}/move": {
+      "put": {
+        "operationId": "FileController_moveFolder",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Current folder name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newLocation": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Folder moved successfully"
+          },
+          "400": {
+            "description": "Invalid destination"
+          },
+          "404": {
+            "description": "Folder not found"
+          }
+        },
+        "summary": "Move a folder to a different location",
+        "tags": [
+          "Folders & Files",
+          "Folder Management"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/preview": {
+      "get": {
+        "operationId": "FileController_getFilePreview",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a preview of a file",
+        "tags": [
+          "Folders & Files"
+        ]
+      }
+    },
+    "/files/folders/tree": {
+      "get": {
+        "operationId": "FileController_getFolderTree",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Folder tree retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderTreeResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a hierarchical tree structure of folders and files",
+        "tags": [
+          "Folders & Files",
+          "Search & Browse"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/share": {
+      "post": {
+        "operationId": "FileController_generateShareableLink",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shareable link generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareableLinkResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          }
+        },
+        "summary": "Generate a shareable link for a file",
+        "tags": [
+          "Folders & Files",
+          "File Sharing"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/lock": {
+      "put": {
+        "operationId": "FileController_lockFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "File is already locked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error locking file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Lock a file for editing",
+        "tags": [
+          "Folders & Files",
+          "File Locking"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/unlock": {
+      "put": {
+        "operationId": "FileController_unlockFile",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Unlock a file for editing",
+        "tags": [
+          "Folders & Files",
+          "File Locking"
+        ]
+      }
+    },
+    "/files/files/recent": {
+      "get": {
+        "operationId": "FileController_getRecentFiles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a list of recently modified files",
+        "tags": [
+          "Folders & Files",
+          "Search & Browse"
+        ]
+      }
+    },
+    "/files/folders/{folder}/files/{filename}/versions": {
+      "get": {
+        "operationId": "FileController_getFileVersions",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Folder name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "description": "File name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File versions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileVersionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          }
+        },
+        "summary": "Get different versions of a file",
+        "tags": [
+          "Folders & Files",
+          "File Versions"
+        ]
+      }
+    },
+    "/files/metrics/file-operations": {
+      "get": {
+        "description": "Retrieve metrics about recent file operations including success rate and performance data",
+        "operationId": "FileController_getFileOperationMetrics",
+        "parameters": [
+          {
+            "name": "timeWindow",
+            "required": false,
+            "in": "query",
+            "description": "Time window in milliseconds for failure rate calculation",
+            "schema": {
+              "example": 3600000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of metrics to return",
+            "schema": {
+              "example": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File operation metrics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileOperationMetricsResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get file operation metrics",
+        "tags": [
+          "Folders & Files"
         ]
       }
     }
   },
   "info": {
     "title": "File Storage API",
-    "description": "",
+    "description": "API for managing files and folders in the Asset Management System",
     "version": "1.0",
     "contact": {}
   },
   "tags": [],
   "servers": [],
   "components": {
-    "schemas": {}
+    "schemas": {
+      "FolderResponse": {
+        "type": "object",
+        "properties": {
+          "folders": {
+            "example": [
+              "folder1",
+              "folder2"
+            ],
+            "description": "List of folder names",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "folders"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 400,
+            "description": "HTTP status code"
+          },
+          "message": {
+            "type": "string",
+            "example": "File not found",
+            "description": "Error message"
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request",
+            "description": "Error type"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "error"
+        ]
+      },
+      "FolderDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "example": "documents",
+            "description": "Name of the folder"
+          },
+          "files": {
+            "example": [
+              "file1.pdf",
+              "file2.jpg"
+            ],
+            "description": "List of files in the folder",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "totalFiles": {
+            "type": "number",
+            "example": 100,
+            "description": "Total number of files in folder"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "number",
+            "example": 10,
+            "description": "Number of items per page"
+          }
+        },
+        "required": [
+          "folder",
+          "files",
+          "totalFiles",
+          "page",
+          "limit"
+        ]
+      },
+      "FileMetadataResponse": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "example": "document.pdf",
+            "description": "Name of the file"
+          },
+          "size": {
+            "type": "number",
+            "example": 1024,
+            "description": "Size of file in bytes"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-02-20T10:00:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "modifiedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-02-20T11:30:00.000Z",
+            "description": "Last modification timestamp"
+          }
+        },
+        "required": [
+          "filename",
+          "size",
+          "createdAt",
+          "modifiedAt"
+        ]
+      },
+      "JsonFileResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "example": {
+              "key": "value"
+            },
+            "description": "JSON file content"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "JsonValueResponse": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "object",
+            "example": "value",
+            "description": "Value at the specified path in the JSON file"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "FolderTreeResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "root",
+            "description": "Name of the current node"
+          },
+          "children": {
+            "example": [
+              {
+                "name": "folder1",
+                "children": []
+              },
+              {
+                "name": "file1.pdf"
+              }
+            ],
+            "description": "Child nodes (folders and files)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "children"
+        ]
+      },
+      "ShareableLinkResponse": {
+        "type": "object",
+        "properties": {
+          "shareableLink": {
+            "type": "string",
+            "example": "https://promoteClients2.glitch.me/folders/docs/files/example.pdf?share=true",
+            "description": "Generated shareable link for the file"
+          }
+        },
+        "required": [
+          "shareableLink"
+        ]
+      },
+      "FileVersionResponse": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "example": "document.pdf",
+            "description": "Name of the original file"
+          },
+          "versions": {
+            "example": [
+              {
+                "version": "1",
+                "filename": "document.pdf.v1"
+              },
+              {
+                "version": "2",
+                "filename": "document.pdf.v2"
+              }
+            ],
+            "description": "List of available versions",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "filename",
+          "versions"
+        ]
+      },
+      "FileOperationMetricDto": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "example": "createFolder",
+            "description": "Name of the file operation"
+          },
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the operation succeeded"
+          },
+          "duration": {
+            "type": "number",
+            "example": 123,
+            "description": "Duration of operation in milliseconds"
+          },
+          "timestamp": {
+            "type": "number",
+            "example": 1645564789123,
+            "description": "Timestamp of the operation"
+          },
+          "path": {
+            "type": "string",
+            "example": "/uploads/docs",
+            "description": "Path involved in the operation"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if operation failed"
+          }
+        },
+        "required": [
+          "operation",
+          "success",
+          "duration",
+          "timestamp"
+        ]
+      },
+      "FileOperationMetricsResponse": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "description": "Recent file operation metrics",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileOperationMetricDto"
+            }
+          },
+          "failureRate": {
+            "type": "number",
+            "example": 0.05,
+            "description": "Rate of failed operations in the time window"
+          },
+          "timeWindow": {
+            "type": "number",
+            "example": 3600000,
+            "description": "Time window in milliseconds"
+          },
+          "totalOperations": {
+            "type": "number",
+            "example": 100,
+            "description": "Total number of operations recorded"
+          }
+        },
+        "required": [
+          "metrics",
+          "failureRate",
+          "timeWindow",
+          "totalOperations"
+        ]
+      }
+    }
   }
 }

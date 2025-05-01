@@ -7,7 +7,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
 
   // Setup Swagger documentation
   setupSwagger(app);
@@ -35,4 +37,28 @@ async function bootstrap() {
 
   await app.listen(8000);
 }
+
+// Add process event handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Application specific logging, throwing an error, or other logic here
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Application specific logging, throwing an error, or other logic here
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM signal. Starting graceful shutdown...');
+  // Add your cleanup logic here if needed
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT signal. Starting graceful shutdown...');
+  // Add your cleanup logic here if needed
+  process.exit(0);
+});
+
 bootstrap();

@@ -3,6 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import TelegramBot from 'node-telegram-bot-api';
 import { TelegramLoadBalancer } from './telegram.load-balancer';
 import { TelegramConfig } from '../config/telegram.config';
+import {
+  BroadcastMessageDto,
+  BotStatusResponseDto,
+  ConfigurationResponseDto,
+  BroadcastResponseDto,
+  MessageType
+} from './dto/telegram.dto';
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -149,5 +156,78 @@ export class TelegramService implements OnModuleInit {
         );
       }
     }
+  }
+  async broadcastMessage(messageDto: BroadcastMessageDto): Promise<BroadcastResponseDto> {
+    try {
+      const bot = this.loadBalancer.getNextBot();
+      const config = this.configService.get<TelegramConfig>('telegram');
+      const channel = config.channels[0]; // Using first channel for broadcasting
+
+      let messageId: string;
+
+      switch (messageDto.type) {
+        case MessageType.PHOTO:
+          if (!messageDto.mediaUrl) {
+            throw new Error('Media URL is required for photo messages');
+          }
+          const photoResult = await bot.sendPhoto(channel.channelId, messageDto.mediaUrl, {
+            caption: messageDto.message
+          });
+          messageId = photoResult.message_id.toString();
+          break;
+
+        case MessageType.VIDEO:
+          if (!messageDto.mediaUrl) {
+            throw new Error('Media URL is required for video messages');
+          }
+          const videoResult = await bot.sendVideo(channel.channelId, messageDto.mediaUrl, {
+            caption: messageDto.message
+          });
+          messageId = videoResult.message_id.toString();
+          break;
+
+        case MessageType.TEXT:
+        default:
+          const textResult = await bot.sendMessage(channel.channelId, messageDto.message);
+          messageId = textResult.message_id.toString();
+          break;
+      }
+
+      return {
+        success: true,
+        messageId,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      this.logger.error('Failed to broadcast message:', error);
+      return {
+        success: false,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+  async getBotStatus(): Promise<BotStatusResponseDto[]> {
+    const bots = this.loadBalancer.getBots() || [];
+    const botStats = bots.map((botInfo, index) => {
+      const operations = this.loadBalancer.getBotOperationCount(botInfo.bot);
+      const maxOps = this.loadBalancer.getBotMaxOperations(botInfo.bot);
+      return {
+        id: index + 1,
+        activeOperations: operations,
+        maxOperations: maxOps,
+        utilizationPercentage: this.loadBalancer.getBotUtilizationPercentage(botInfo.bot)
+      };
+    });
+    return botStats;
+  }
+
+  async getConfiguration(): Promise<ConfigurationResponseDto> {
+    const config = this.configService.get<TelegramConfig>('telegram');
+    const firstBot = this.loadBalancer.getBots()?.[0]?.bot;
+    return {
+      channelConfigured: config.channels?.length > 0,
+      botsCount: config.bots?.length || 0,
+      maxOperationsPerBot: firstBot ? this.loadBalancer.getBotMaxOperations(firstBot) : 0
+    };
   }
 }

@@ -80,4 +80,8 @@ export class TelegramLoadBalancer {
     }
     return undefined;
   }
+
+  public getBots() {
+    return this.bots;
+  }
 }

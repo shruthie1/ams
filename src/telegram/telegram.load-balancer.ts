@@ -12,12 +12,12 @@ export class TelegramLoadBalancer {
   private readonly logger = new Logger(TelegramLoadBalancer.name);
 
   getBotOperationCount(bot: TelegramBot): number {
-    const botInfo = this.bots.find(b => b.bot === bot);
+    const botInfo = this.bots.find((b) => b.bot === bot);
     return botInfo?.operationCount || 0;
   }
 
   getBotMaxOperations(bot: TelegramBot): number {
-    const botInfo = this.bots.find(b => b.bot === bot);
+    const botInfo = this.bots.find((b) => b.bot === bot);
     return botInfo?.config.maxConcurrentOperations || 0;
   }
 
@@ -34,7 +34,9 @@ export class TelegramLoadBalancer {
       operationCount: 0,
       config,
     });
-    this.logger.log(`Added new bot to the pool. Total bots: ${this.bots.length}`);
+    this.logger.log(
+      `Added new bot to the pool. Total bots: ${this.bots.length}`,
+    );
   }
 
   public getNextBot(): TelegramBot {
@@ -47,7 +49,9 @@ export class TelegramLoadBalancer {
       return prev.operationCount <= curr.operationCount ? prev : curr;
     });
 
-    if (selectedBot.operationCount >= selectedBot.config.maxConcurrentOperations) {
+    if (
+      selectedBot.operationCount >= selectedBot.config.maxConcurrentOperations
+    ) {
       this.logger.warn('All bots are at maximum capacity');
       // Return least loaded bot anyway as fallback
     }
@@ -57,18 +61,18 @@ export class TelegramLoadBalancer {
   }
 
   public releaseBot(bot: TelegramBot): void {
-    const botInfo = this.bots.find(b => b.bot === bot);
+    const botInfo = this.bots.find((b) => b.bot === bot);
     if (botInfo) {
       botInfo.operationCount = Math.max(0, botInfo.operationCount - 1);
     }
   }
 
   public getAllBots(): TelegramBot[] {
-    return this.bots.map(b => b.bot);
+    return this.bots.map((b) => b.bot);
   }
 
   public getBotToken(bot: TelegramBot): string | undefined {
-    const botInfo = this.bots.find(b => b.bot === bot);
+    const botInfo = this.bots.find((b) => b.bot === bot);
     return botInfo?.config.token;
   }
 

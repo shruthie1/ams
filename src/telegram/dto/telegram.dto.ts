@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsString, IsUrl, IsOptional, IsNotEmpty } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsUrl,
+  IsOptional,
+  IsNotEmpty,
+} from 'class-validator';
 
 export enum MessageType {
   TEXT = 'text',
@@ -66,7 +72,6 @@ export class ConfigurationResponseDto {
     example: ['photo', 'video'],
     isArray: true,
   })
-
   @ApiProperty({
     description: 'Whether the target channel is properly configured',
     example: true,

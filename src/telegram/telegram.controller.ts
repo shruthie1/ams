@@ -1,24 +1,24 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  HttpStatus, 
-  UsePipes, 
-  ValidationPipe 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  HttpStatus,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiSecurity 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { TelegramService } from './telegram.service';
-import { 
-  BotStatusResponseDto, 
+import {
+  BotStatusResponseDto,
   BroadcastMessageDto,
   ConfigurationResponseDto,
-  BroadcastResponseDto
+  BroadcastResponseDto,
 } from './dto/telegram.dto';
 
 @ApiTags('Telegram')
@@ -30,32 +30,36 @@ export class TelegramController {
   @Post('broadcast')
   @ApiOperation({
     summary: 'Broadcast a message to Telegram channel',
-    description: 'Send a text, photo, or video message to the configured Telegram channel using load-balanced bots'
+    description:
+      'Send a text, photo, or video message to the configured Telegram channel using load-balanced bots',
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Message broadcasted successfully',
-    type: BroadcastResponseDto
+    type: BroadcastResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid message format or missing required fields'
+    description: 'Invalid message format or missing required fields',
   })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async broadcastMessage(@Body() messageDto: BroadcastMessageDto): Promise<BroadcastResponseDto> {
+  async broadcastMessage(
+    @Body() messageDto: BroadcastMessageDto,
+  ): Promise<BroadcastResponseDto> {
     return this.telegramService.broadcastMessage(messageDto);
   }
 
   @Get('status')
   @ApiOperation({
     summary: 'Get bot status',
-    description: 'Retrieve current status of Telegram bots including active operations and utilization'
+    description:
+      'Retrieve current status of Telegram bots including active operations and utilization',
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Bot status retrieved successfully',
     type: BotStatusResponseDto,
-    isArray: true
+    isArray: true,
   })
   async getBotStatus(): Promise<BotStatusResponseDto[]> {
     return this.telegramService.getBotStatus();
@@ -64,12 +68,13 @@ export class TelegramController {
   @Get('config')
   @ApiOperation({
     summary: 'Get configuration info',
-    description: 'Retrieve current configuration information including allowed media types and bot settings'
+    description:
+      'Retrieve current configuration information including allowed media types and bot settings',
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Configuration retrieved successfully',
-    type: ConfigurationResponseDto
+    type: ConfigurationResponseDto,
   })
   async getConfiguration(): Promise<ConfigurationResponseDto> {
     return this.telegramService.getConfiguration();

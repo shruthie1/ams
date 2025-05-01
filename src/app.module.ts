@@ -6,11 +6,13 @@ import { FileModule } from './files/file.module';
 import { TelegramModule } from './telegram/telegram.module';
 import telegramConfig from './config/telegram.config';
 
-@Module({  imports: [
+@Module({
+  imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [telegramConfig],
-    }),    FileModule.register(),
+    }),
+    FileModule.register(),
     TelegramModule,
   ],
   controllers: [AppController],

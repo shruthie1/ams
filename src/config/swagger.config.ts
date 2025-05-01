@@ -3,9 +3,12 @@ import { INestApplication } from '@nestjs/common';
 import * as fs from 'fs';
 
 export function setupSwagger(app: INestApplication): void {
-  console.log('Setting up Swagger documentation...');  const config = new DocumentBuilder()
+  console.log('Setting up Swagger documentation...');
+  const config = new DocumentBuilder()
     .setTitle('File Storage API')
-    .setDescription('API for managing files and folders in the Asset Management System')
+    .setDescription(
+      'API for managing files and folders in the Asset Management System',
+    )
     .setVersion('1.0')
     .build();
   const document = SwaggerModule.createDocument(app, config);

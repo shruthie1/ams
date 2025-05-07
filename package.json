@@ -36,6 +36,7 @@
     "dev": "nodemon --exec ts-node src/main.ts",
     "prebuild": "rm -rf dist",
     "build": "nest build --config tsconfig.build.json",
+    "webpack": "webpack --config webpack.config.js",
     "build:lib": "tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"{src,test}/**/*.ts\" --ignore-pattern eslint.config.js --fix",

@@ -3,17 +3,17 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FileModule } from './files/file.module';
-import { TelegramModule } from './telegram/telegram.module';
-import telegramConfig from './config/telegram.config';
+import { botModule } from './Bot/bot.module';
+import botConfig from './config/bot.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [telegramConfig],
+      load: [botConfig],
     }),
     FileModule.register(),
-    TelegramModule,
+    botModule,
   ],
   controllers: [AppController],
   providers: [AppService],

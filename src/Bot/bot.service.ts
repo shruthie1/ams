@@ -1,48 +1,48 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import TelegramBot from 'node-telegram-bot-api';
-import { TelegramLoadBalancer } from './telegram.load-balancer';
-import { TelegramConfig } from '../config/telegram.config';
+import bot from 'node-telegram-bot-api';
+import { botLoadBalancer } from './bot.load-balancer';
+import { tgConfig } from '../config/bot.config';
 import {
   BroadcastMessageDto,
   BotStatusResponseDto,
   ConfigurationResponseDto,
   BroadcastResponseDto,
   MessageType,
-} from './dto/telegram.dto';
+} from './dto/bot.dto';
 
 @Injectable()
-export class TelegramService implements OnModuleInit {
-  private readonly logger = new Logger(TelegramService.name);
-  private readonly config: TelegramConfig;
+export class botService implements OnModuleInit {
+  private readonly logger = new Logger(botService.name);
+  private readonly config: tgConfig;
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 1000; // 1 second
   private messageQueue: Map<
     string,
     {
       retries: number;
-      message: TelegramBot.Message;
+      message: bot.Message;
       channelId: string;
     }
   > = new Map();
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly loadBalancer: TelegramLoadBalancer,
+    private readonly loadBalancer: botLoadBalancer,
   ) {
-    this.config = this.configService.get<TelegramConfig>('telegram');
+    this.config = this.configService.get<tgConfig>('bot');
   }
 
   async onModuleInit() {
-    this.logger.log('Initializing Telegram service...');
+    this.logger.log('Initializing bot service...');
     await this.initializeBots();
     this.startMessageQueueProcessor();
-    this.logger.log('Telegram service initialized successfully');
+    this.logger.log('bot service initialized successfully');
   }
 
   private async initializeBots() {
     if (!this.config?.bots?.length) {
-      this.logger.warn('No bots configured in telegram config');
+      this.logger.warn('No bots configured in bot config');
       return;
     }
 
@@ -132,7 +132,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  private setupMessageHandlers(bot: TelegramBot) {
+  private setupMessageHandlers(bot: bot) {
     bot.on('message', (msg) => {
       this.handleIncomingMessage(bot, msg).catch((error) =>
         this.handleMessageError(error, msg, bot),
@@ -146,8 +146,8 @@ export class TelegramService implements OnModuleInit {
 
   private async handleMessageError(
     error: Error,
-    message: TelegramBot.Message,
-    bot: TelegramBot,
+    message: bot.Message,
+    bot: bot,
   ) {
     const messageId = `${message.chat.id}-${message.message_id}`;
     const botToken = this.loadBalancer.getBotToken(bot);
@@ -176,8 +176,8 @@ export class TelegramService implements OnModuleInit {
   }
 
   private async handleIncomingMessage(
-    bot: TelegramBot,
-    message: TelegramBot.Message,
+    bot: bot,
+    message: bot.Message,
   ) {
     const messageId = `${message.chat.id}-${message.message_id}`;
 
@@ -231,8 +231,8 @@ export class TelegramService implements OnModuleInit {
   }
 
   private async forwardMessageWithRetry(
-    bot: TelegramBot,
-    message: TelegramBot.Message,
+    bot: bot,
+    message: bot.Message,
     channelId: string,
     retryCount = 0,
   ): Promise<void> {
@@ -259,8 +259,8 @@ export class TelegramService implements OnModuleInit {
   }
 
   private async forwardMessage(
-    bot: TelegramBot,
-    message: TelegramBot.Message,
+    bot: bot,
+    message: bot.Message,
     channelId: string,
   ): Promise<void> {
     const messageId = `${message.chat.id}-${message.message_id}`;
@@ -326,10 +326,10 @@ export class TelegramService implements OnModuleInit {
   }
 
   private async sendMessageByType(
-    bot: TelegramBot,
+    bot: bot,
     channelId: string,
     messageDto: BroadcastMessageDto,
-  ): Promise<TelegramBot.Message> {
+  ): Promise<bot.Message> {
     this.logger.debug(
       `Sending ${messageDto.type} message to channel ${channelId}`,
     );
@@ -376,7 +376,7 @@ export class TelegramService implements OnModuleInit {
   }
 
   async getConfiguration(): Promise<ConfigurationResponseDto> {
-    this.logger.debug('Fetching Telegram service configuration');
+    this.logger.debug('Fetching bot service configuration');
     const firstBot = this.loadBalancer.getBots()?.[0]?.bot;
     return {
       channelConfigured: this.config.channels?.length > 0,

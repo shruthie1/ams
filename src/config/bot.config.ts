@@ -1,30 +1,30 @@
 import { registerAs } from '@nestjs/config';
 
-export interface TelegramBotConfig {
+export interface tgBotConfig {
   token: string;
   maxConcurrentOperations: number;
 }
 
-export interface TelegramChannelConfig {
+export interface tgChannelConfig {
   channelId: string;
   description?: string;
   botTokens: string[]; // List of bot tokens that can forward to this channel
 }
 
-export interface TelegramConfig {
-  bots: TelegramBotConfig[];
-  channels: TelegramChannelConfig[];
+export interface tgConfig {
+  bots: tgBotConfig[];
+  channels: tgChannelConfig[];
   adminChatId?: string;
 }
 
-export default registerAs('telegram', () => {
-  const maxOps = parseInt(process.env.TELEGRAM_BOT_MAX_OPERATIONS || '10');
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+export default registerAs('bot', () => {
+  const maxOps = parseInt(process.env.bot_BOT_MAX_OPERATIONS || '10');
+  const adminChatId = process.env.bot_ADMIN_CHAT_ID;
   // Parse channel configurations from environment variables
   const channelConfigs = parseChannelConfigs();
 
   if (!channelConfigs.length) {
-    console.warn('No Telegram channel configurations found!');
+    console.warn('No bot channel configurations found!');
   } else {
     console.log(
       'Parsed channel configurations:',
@@ -50,10 +50,10 @@ export default registerAs('telegram', () => {
   });
 
   if (!uniqueBotTokens.size) {
-    console.warn('No Telegram bot tokens found in channel configurations!');
+    console.warn('No bot bot tokens found in channel configurations!');
   }
 
-  const config: TelegramConfig = {
+  const config: tgConfig = {
     bots: Array.from(uniqueBotTokens).map((token) => ({
       token: token.trim(),
       maxConcurrentOperations: maxOps,
@@ -61,7 +61,7 @@ export default registerAs('telegram', () => {
     channels: channelConfigs,
     adminChatId,
   };
-  console.log('Loaded Telegram configuration:', {
+  console.log('Loaded bot configuration:', {
     botsCount: config.bots.length,
     channelsCount: config.channels.length,
     botMappings: Array.from(botChannelMapping.entries()).map(
@@ -77,15 +77,15 @@ export default registerAs('telegram', () => {
   return config;
 });
 
-function parseChannelConfigs(): TelegramChannelConfig[] {
-  const channelConfigs: TelegramChannelConfig[] = [];
+function parseChannelConfigs(): tgChannelConfig[] {
+  const channelConfigs: tgChannelConfig[] = [];
 
   // Get all environment variables
   const envVars = Object.keys(process.env);
 
   // Find all channel config variables (they can be in any order)
   const channelConfigVars = envVars.filter((key) =>
-    key.startsWith('TELEGRAM_CHANNEL_CONFIG_'),
+    key.startsWith('bot_CHANNEL_CONFIG_'),
   );
 
   for (const configVar of channelConfigVars) {

@@ -5,21 +5,21 @@
 
 // Export modules
 export * from './files/file.module';
-export * from './telegram/telegram.module';
+export * from './Bot/bot.module';
 
 // Export controllers
 export * from './files/file.controller';
-export * from './telegram/telegram.controller';
+export * from './Bot/bot.controller';
 
 // Export services
 export * from './files/file.service';
-export * from './telegram/telegram.service';
-export * from './telegram/telegram.load-balancer';
+export * from './Bot/bot.service';
+export * from './Bot/bot.load-balancer';
 
 // Export DTOs for request and response objects
 export * from './files/dto/requests.dto';
 export * from './files/dto/responses.dto';
-export * from './telegram/dto/telegram.dto';
+export * from './Bot/dto/bot.dto';
 
 // Export utilities that may be useful for consumers
 export * from './files/utils/file-cleanup.util';
@@ -33,4 +33,4 @@ export * from './files/utils/file-operation-monitor';
 export * from './files/file.module.interface';
 export * from './files/config/file.config';
 export * from './files/config/view.config';
-export * from './config/telegram.config';
+export * from './config/bot.config';

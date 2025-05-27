@@ -13,25 +13,25 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { TelegramService } from './telegram.service';
+import { botService } from './bot.service';
 import {
   BotStatusResponseDto,
   BroadcastMessageDto,
   ConfigurationResponseDto,
   BroadcastResponseDto,
-} from './dto/telegram.dto';
+} from './dto/bot.dto';
 
-@ApiTags('Telegram')
+@ApiTags('bot')
 @ApiSecurity('api_key')
-@Controller('telegram')
-export class TelegramController {
-  constructor(private readonly telegramService: TelegramService) {}
+@Controller('bot')
+export class botController {
+  constructor(private readonly botService: botService) {}
 
   @Post('broadcast')
   @ApiOperation({
-    summary: 'Broadcast a message to Telegram channel',
+    summary: 'Broadcast a message to bot channel',
     description:
-      'Send a text, photo, or video message to the configured Telegram channel using load-balanced bots',
+      'Send a text, photo, or video message to the configured bot channel using load-balanced bots',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -46,14 +46,14 @@ export class TelegramController {
   async broadcastMessage(
     @Body() messageDto: BroadcastMessageDto,
   ): Promise<BroadcastResponseDto> {
-    return this.telegramService.broadcastMessage(messageDto);
+    return this.botService.broadcastMessage(messageDto);
   }
 
   @Get('status')
   @ApiOperation({
     summary: 'Get bot status',
     description:
-      'Retrieve current status of Telegram bots including active operations and utilization',
+      'Retrieve current status of bot bots including active operations and utilization',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -62,7 +62,7 @@ export class TelegramController {
     isArray: true,
   })
   async getBotStatus(): Promise<BotStatusResponseDto[]> {
-    return this.telegramService.getBotStatus();
+    return this.botService.getBotStatus();
   }
 
   @Get('config')
@@ -77,6 +77,6 @@ export class TelegramController {
     type: ConfigurationResponseDto,
   })
   async getConfiguration(): Promise<ConfigurationResponseDto> {
-    return this.telegramService.getConfiguration();
+    return this.botService.getConfiguration();
   }
 }

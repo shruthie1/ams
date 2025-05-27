@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import TelegramBot from 'node-telegram-bot-api';
-import { TelegramBotConfig } from '../config/telegram.config';
+import { tgBotConfig } from '../config/bot.config';
 
 @Injectable()
 export class TelegramLoadBalancer {
   private readonly bots: Array<{
     bot: TelegramBot;
     operationCount: number;
-    config: TelegramBotConfig;
+    config: tgBotConfig;
   }> = [];
   private readonly logger = new Logger(TelegramLoadBalancer.name);
 
@@ -27,7 +27,7 @@ export class TelegramLoadBalancer {
     return (this.getBotOperationCount(bot) / maxOps) * 100;
   }
 
-  public addBot(config: TelegramBotConfig): void {
+  public addBot(config: tgBotConfig): void {
     const bot = new TelegramBot(config.token, { polling: true });
     this.bots.push({
       bot,

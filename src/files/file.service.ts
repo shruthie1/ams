@@ -11,7 +11,7 @@ import {
 import { Response, Request } from 'express';
 import { join, resolve } from 'path';
 import * as fs from 'fs';
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import { FILE_CONFIG } from './config/file.config';
 import { VIEW_CONFIG } from './config/view.config';
 import { createReadStream } from 'fs';

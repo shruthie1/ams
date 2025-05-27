@@ -1,6 +1,6 @@
 {
   "name": "ams-ssk",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "NestJS AMS Library for file management",
   "author": "Mad_man",
   "keywords": [

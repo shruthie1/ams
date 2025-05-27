@@ -52,7 +52,7 @@ export class TelegramLoadBalancer {
     if (
       selectedBot.operationCount >= selectedBot.config.maxConcurrentOperations
     ) {
-      this.logger.warn('All bots are at maximum capacity');
+      // this.logger.warn('All bots are at maximum capacity');
       // Return least loaded bot anyway as fallback
     }
 

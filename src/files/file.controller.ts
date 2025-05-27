@@ -791,4 +791,55 @@ export class FileController {
       totalOperations: metrics.length,
     };
   }
+
+  @ApiTags('Folder Management')
+  @Post('folders/:folder/copy')
+  @ApiOperation({
+    summary: 'Copy a folder to a new location',
+    description:
+      'Creates a copy of a folder and all its contents at a new location',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Folder copied successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        sourceFolder: { type: 'string' },
+        destinationFolder: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid destination or destination already exists',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Source folder not found',
+  })
+  @ApiParam({
+    name: 'folder',
+    description: 'Source folder name to copy',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['destinationFolder'],
+      properties: {
+        destinationFolder: {
+          type: 'string',
+          description:
+            'Name of the destination folder where the copy will be created',
+        },
+      },
+    },
+  })
+  async copyFolder(
+    @Param('folder') folder: string,
+    @Body('destinationFolder') destinationFolder: string,
+  ) {
+    return this.fileService.copyFolder(folder, destinationFolder);
+  }
 }

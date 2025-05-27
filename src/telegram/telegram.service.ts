@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import TelegramBot from 'node-telegram-bot-api';
 import { TelegramLoadBalancer } from './telegram.load-balancer';
@@ -13,14 +13,18 @@ import {
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
+  private readonly logger = new Logger(TelegramService.name);
   private readonly config: TelegramConfig;
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 1000; // 1 second
-  private messageQueue: Map<string, {
-    retries: number;
-    message: TelegramBot.Message;
-    channelId: string;
-  }> = new Map();
+  private messageQueue: Map<
+    string,
+    {
+      retries: number;
+      message: TelegramBot.Message;
+      channelId: string;
+    }
+  > = new Map();
 
   constructor(
     private readonly configService: ConfigService,
@@ -30,24 +34,33 @@ export class TelegramService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    this.logger.log('Initializing Telegram service...');
     await this.initializeBots();
     this.startMessageQueueProcessor();
+    this.logger.log('Telegram service initialized successfully');
   }
 
   private async initializeBots() {
-    if (!this.config?.bots?.length) return;
-    
-    const initPromises = this.config.bots.map(async botConfig => {
+    if (!this.config?.bots?.length) {
+      this.logger.warn('No bots configured in telegram config');
+      return;
+    }
+
+    this.logger.debug(`Initializing ${this.config.bots.length} bots...`);
+    const initPromises = this.config.bots.map(async (botConfig) => {
       try {
         this.loadBalancer.addBot(botConfig);
         const bot = this.loadBalancer.getBotByToken(botConfig.token);
         if (bot) {
           this.setupMessageHandlers(bot);
-          // Test bot connectivity
-          await bot.getMe();
+          const botInfo = await bot.getMe();
+          this.logger.log(`Bot @${botInfo.username} initialized successfully`);
         }
       } catch (error) {
-        // If bot initialization fails, we'll try to recover later
+        this.logger.error(
+          `Failed to initialize bot with token ${botConfig.token.slice(0, 6)}...`,
+          error.stack,
+        );
         this.queueBotRecovery(botConfig);
       }
     });
@@ -56,72 +69,104 @@ export class TelegramService implements OnModuleInit {
   }
 
   private queueBotRecovery(botConfig: any) {
+    this.logger.debug(
+      `Queuing recovery for bot with token ${botConfig.token.slice(0, 6)}...`,
+    );
     setTimeout(() => {
       try {
         this.loadBalancer.addBot(botConfig);
         const bot = this.loadBalancer.getBotByToken(botConfig.token);
         if (bot) {
           this.setupMessageHandlers(bot);
+          this.logger.log(
+            `Successfully recovered bot with token ${botConfig.token.slice(0, 6)}...`,
+          );
         }
-      } catch {
-        // If recovery fails, queue another attempt
+      } catch (error) {
+        this.logger.error(
+          `Failed to recover bot with token ${botConfig.token.slice(0, 6)}...`,
+          error.stack,
+        );
+        this.logger.warn(
+          `Bot recovery failed, retrying... Token: ${botConfig.token.slice(0, 6)}...`,
+        );
         this.queueBotRecovery(botConfig);
       }
     }, this.RETRY_DELAY);
   }
 
   private startMessageQueueProcessor() {
+    this.logger.log('Starting message queue processor');
     setInterval(() => this.processMessageQueue(), 1000);
   }
 
   private async processMessageQueue() {
+    if (this.messageQueue.size === 0) return;
+
+    this.logger.debug(
+      `Processing message queue. Size: ${this.messageQueue.size}`,
+    );
     for (const [messageId, queueItem] of this.messageQueue) {
       try {
         const bot = this.loadBalancer.getNextBot();
         await this.forwardMessage(bot, queueItem.message, queueItem.channelId);
         this.messageQueue.delete(messageId);
+        this.logger.debug(`Successfully processed queued message ${messageId}`);
       } catch (error) {
         if (queueItem.retries >= this.MAX_RETRIES) {
           this.messageQueue.delete(messageId);
-          this.notifyAdmin(`Failed to forward message after ${this.MAX_RETRIES} retries: ${error.message}`);
+          this.logger.error(
+            `Failed to forward message ${messageId} after ${this.MAX_RETRIES} retries:`,
+            error.stack,
+          );
+          this.notifyAdmin(
+            `Failed to forward message after ${this.MAX_RETRIES} retries: ${error.message}`,
+          );
         } else {
           queueItem.retries++;
+          this.logger.warn(
+            `Retry ${queueItem.retries}/${this.MAX_RETRIES} for message ${messageId}`,
+          );
         }
       }
     }
   }
 
   private setupMessageHandlers(bot: TelegramBot) {
-    bot.on('message', msg => {
-      this.handleIncomingMessage(bot, msg)
-        .catch(error => this.handleMessageError(error, msg));
+    bot.on('message', (msg) => {
+      this.handleIncomingMessage(bot, msg).catch((error) =>
+        this.handleMessageError(error, msg, bot),
+      );
     });
 
-    bot.on('error', error => {
+    bot.on('error', (error) => {
       this.notifyAdmin(`Bot error occurred: ${error.message}`);
     });
   }
 
-  private async handleMessageError(error: Error, message: TelegramBot.Message) {
+  private async handleMessageError(
+    error: Error,
+    message: TelegramBot.Message,
+    bot: TelegramBot,
+  ) {
     const messageId = `${message.chat.id}-${message.message_id}`;
+    const botToken = this.loadBalancer.getBotToken(bot);
+    const matchingChannel = this.config.channels.find((channel) =>
+      channel.botTokens.includes(botToken),
+    );
     if (!this.messageQueue.has(messageId)) {
       this.messageQueue.set(messageId, {
         retries: 0,
         message,
-        channelId: this.findChannelForMessage(message)
+        channelId: matchingChannel?.channelId,
       });
     }
     await this.notifyAdmin(`Message queued for retry: ${error.message}`);
   }
 
-  private findChannelForMessage(message: TelegramBot.Message): string {
-    const availableChannel = this.config.channels[0];
-    return availableChannel?.channelId;
-  }
-
   private async notifyAdmin(message: string) {
     if (!this.config.adminChatId) return;
-    
+
     try {
       const bot = this.loadBalancer.getNextBot();
       await bot.sendMessage(this.config.adminChatId, message);
@@ -134,36 +179,52 @@ export class TelegramService implements OnModuleInit {
     bot: TelegramBot,
     message: TelegramBot.Message,
   ) {
+    const messageId = `${message.chat.id}-${message.message_id}`;
+
     // Only handle messages from private chats
-    if (message.chat.type !== 'private') return;
+    // if (message.chat.type !== 'private') {
+    //   this.logger.debug(`Skipping non-private message ${messageId}`);
+    //   return;
+    // }
 
     // Skip messages containing 'start' (case insensitive)
     if (message.text?.toLowerCase().startsWith('start')) {
+      this.logger.debug(`Skipping start command message ${messageId}`);
       return;
     }
 
     const botToken = this.loadBalancer.getBotToken(bot);
-    const matchingChannel = this.config.channels.find(channel =>
-      channel.botTokens.includes(botToken)
+    const matchingChannel = this.config.channels.find((channel) =>
+      channel.botTokens.includes(botToken),
     );
 
     if (!matchingChannel) {
+      this.logger.warn(
+        `No channel configured for bot token: ${botToken.slice(0, 6)}...`,
+      );
       await this.notifyAdmin(
-        `⚠️ Configuration issue: No channel configured for bot token: ${botToken.slice(0, 6)}...`
+        `⚠️ Configuration issue: No channel configured for bot token: ${botToken.slice(0, 6)}...`,
       );
       return;
     }
 
     try {
-      await this.forwardMessageWithRetry(bot, message, matchingChannel.channelId);
-      await this.notifyAdmin(`Message forwarded to channel ${matchingChannel.channelId}`);
+      await this.forwardMessageWithRetry(
+        bot,
+        message,
+        matchingChannel.channelId,
+      );
+      await this.notifyAdmin(
+        `Message forwarded to channel ${matchingChannel.channelId}`,
+      );
     } catch (error) {
-      // Queue message for retry if all immediate attempts fail
-      const messageId = `${message.chat.id}-${message.message_id}`;
+      this.logger.warn(
+        `Failed to forward message ${messageId}, queueing for retry: ${error.message}`,
+      );
       this.messageQueue.set(messageId, {
         retries: 0,
         message,
-        channelId: matchingChannel.channelId
+        channelId: matchingChannel.channelId,
       });
       await this.notifyAdmin(`Message queued for retry: ${error.message}`);
     }
@@ -173,16 +234,26 @@ export class TelegramService implements OnModuleInit {
     bot: TelegramBot,
     message: TelegramBot.Message,
     channelId: string,
-    retryCount = 0
+    retryCount = 0,
   ): Promise<void> {
+    const messageId = `${message.chat.id}-${message.message_id}`;
     try {
       await this.forwardMessage(bot, message, channelId);
     } catch (error) {
       if (retryCount < this.MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
+        this.logger.debug(
+          `Retry attempt ${retryCount + 1} failed, switching to next bot`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, this.RETRY_DELAY));
         const nextBot = this.loadBalancer.getNextBot();
-        return this.forwardMessageWithRetry(nextBot, message, channelId, retryCount + 1);
+        return this.forwardMessageWithRetry(
+          nextBot,
+          message,
+          channelId,
+          retryCount + 1,
+        );
       }
+      this.logger.error(`All retry attempts failed for message ${messageId}`);
       throw error;
     }
   }
@@ -192,22 +263,33 @@ export class TelegramService implements OnModuleInit {
     message: TelegramBot.Message,
     channelId: string,
   ): Promise<void> {
+    const messageId = `${message.chat.id}-${message.message_id}`;
     try {
-      await bot.forwardMessage(
-        channelId,
-        message.chat.id,
-        message.message_id,
-      );
+      await bot.forwardMessage(channelId, message.chat.id, message.message_id);
+      this.logger.debug(`Message ${messageId} forwarded successfully`);
     } catch (error) {
+      this.logger.error(
+        `Failed to forward message ${messageId} using bot...`,
+        error.stack,
+      );
+      this.logger.debug(
+        `Forward attempt failed, trying fallback bot for message ${messageId}`,
+      );
       const fallbackBot = this.loadBalancer.getNextBot();
       if (fallbackBot === bot) {
+        this.logger.error(
+          `No available bots for forwarding message ${messageId}`,
+        );
         throw new Error('No available bots for forwarding');
       }
-      
+
       await fallbackBot.forwardMessage(
         channelId,
         message.chat.id,
         message.message_id,
+      );
+      this.logger.debug(
+        `Message ${messageId} forwarded successfully using fallback bot`,
       );
     }
   }
@@ -215,11 +297,19 @@ export class TelegramService implements OnModuleInit {
   async broadcastMessage(
     messageDto: BroadcastMessageDto,
   ): Promise<BroadcastResponseDto> {
+    this.logger.debug('Starting broadcast message operation');
     try {
       const bot = this.loadBalancer.getNextBot();
       const channel = this.config.channels[0];
 
-      const result = await this.sendMessageByType(bot, channel.channelId, messageDto);
+      const result = await this.sendMessageByType(
+        bot,
+        channel.channelId,
+        messageDto,
+      );
+      this.logger.log(
+        `Successfully broadcasted message with ID: ${result.message_id}`,
+      );
 
       return {
         success: true,
@@ -227,6 +317,7 @@ export class TelegramService implements OnModuleInit {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
+      this.logger.error('Failed to broadcast message:', error.stack);
       return {
         success: false,
         timestamp: new Date().toISOString(),
@@ -239,9 +330,13 @@ export class TelegramService implements OnModuleInit {
     channelId: string,
     messageDto: BroadcastMessageDto,
   ): Promise<TelegramBot.Message> {
+    this.logger.debug(
+      `Sending ${messageDto.type} message to channel ${channelId}`,
+    );
     switch (messageDto.type) {
       case MessageType.PHOTO:
         if (!messageDto.mediaUrl) {
+          this.logger.error('Media URL is required for photo messages');
           throw new Error('Media URL is required for photo messages');
         }
         return bot.sendPhoto(channelId, messageDto.mediaUrl, {
@@ -250,6 +345,7 @@ export class TelegramService implements OnModuleInit {
 
       case MessageType.VIDEO:
         if (!messageDto.mediaUrl) {
+          this.logger.error('Media URL is required for video messages');
           throw new Error('Media URL is required for video messages');
         }
         return bot.sendVideo(channelId, messageDto.mediaUrl, {
@@ -263,6 +359,7 @@ export class TelegramService implements OnModuleInit {
   }
 
   async getBotStatus(): Promise<BotStatusResponseDto[]> {
+    this.logger.debug('Fetching bot status information');
     const bots = this.loadBalancer.getBots() || [];
     return bots.map((botInfo, index) => {
       const operations = this.loadBalancer.getBotOperationCount(botInfo.bot);
@@ -279,6 +376,7 @@ export class TelegramService implements OnModuleInit {
   }
 
   async getConfiguration(): Promise<ConfigurationResponseDto> {
+    this.logger.debug('Fetching Telegram service configuration');
     const firstBot = this.loadBalancer.getBots()?.[0]?.bot;
     return {
       channelConfigured: this.config.channels?.length > 0,

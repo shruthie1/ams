@@ -1050,4 +1050,61 @@ export class FileService implements OnModuleInit {
   //         this.logger.error('Error during file cleanup:', error);
   //     }
   // }
+
+  async copyFolder(sourceFolder: string, destinationFolder: string) {
+    const sourcePath = this.getSafePath(this.config.storagePath, sourceFolder);
+    const destPath = this.getSafePath(
+      this.config.storagePath,
+      destinationFolder,
+    );
+
+    // Validate source folder exists
+    if (!fs.existsSync(sourcePath)) {
+      this.logger.error(`Source folder not found: ${sourceFolder}`);
+      throw new NotFoundException('Source folder not found');
+    }
+
+    // Check if destination folder already exists
+    if (fs.existsSync(destPath)) {
+      this.logger.error(
+        `Destination folder already exists: ${destinationFolder}`,
+      );
+      throw new BadRequestException('Destination folder already exists');
+    }
+
+    try {
+      // Create destination folder
+      fs.mkdirSync(destPath, { recursive: true });
+
+      // Function to recursively copy folder contents
+      const copyRecursive = (src: string, dest: string) => {
+        const entries = fs.readdirSync(src, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const srcPath = join(src, entry.name);
+          const destPath = join(dest, entry.name);
+
+          if (entry.isDirectory()) {
+            fs.mkdirSync(destPath, { recursive: true });
+            copyRecursive(srcPath, destPath);
+          } else {
+            fs.copyFileSync(srcPath, destPath);
+          }
+        }
+      };
+
+      // Start recursive copy
+      copyRecursive(sourcePath, destPath);
+
+      this.logger.log(`Folder copied from ${sourcePath} to ${destPath}`);
+      return {
+        message: 'Folder copied successfully',
+        sourceFolder,
+        destinationFolder,
+      };
+    } catch (error) {
+      this.logger.error(`Error copying folder: ${error.message}`);
+      throw new InternalServerErrorException('Error copying folder');
+    }
+  }
 }

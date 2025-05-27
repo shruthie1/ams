@@ -113,3 +113,13 @@ export class JsonQuery {
   @IsNotEmpty()
   query: string;
 }
+
+export class CopyFolderDto {
+  @ApiProperty({
+    example: 'destination-folder',
+    description: 'Destination folder for the folder copy',
+  })
+  @IsString()
+  @IsNotEmpty()
+  destinationFolder: string;
+}

@@ -4,33 +4,33 @@
  */
 
 // Export modules
-export * from './src/files/file.module';
-export * from './src/telegram/telegram.module';
+export * from './files/file.module';
+export * from './telegram/telegram.module';
 
 // Export controllers
-export * from './src/files/file.controller';
-export * from './src/telegram/telegram.controller';
+export * from './files/file.controller';
+export * from './telegram/telegram.controller';
 
 // Export services
-export * from './src/files/file.service';
-export * from './src/telegram/telegram.service';
-export * from './src/telegram/telegram.load-balancer';
+export * from './files/file.service';
+export * from './telegram/telegram.service';
+export * from './telegram/telegram.load-balancer';
 
 // Export DTOs for request and response objects
-export * from './src/files/dto/requests.dto';
-export * from './src/files/dto/responses.dto';
-export * from './src/telegram/dto/telegram.dto';
+export * from './files/dto/requests.dto';
+export * from './files/dto/responses.dto';
+export * from './telegram/dto/telegram.dto';
 
 // Export utilities that may be useful for consumers
-export * from './src/files/utils/file-cleanup.util';
-export * from './src/files/utils/file-operation-error';
-export * from './src/files/utils/file-operation-wrapper';
-export * from './src/files/utils/file-validators';
-export * from './src/files/utils/json-path.validator';
-export * from './src/files/utils/file-operation-monitor';
+export * from './files/utils/file-cleanup.util';
+export * from './files/utils/file-operation-error';
+export * from './files/utils/file-operation-wrapper';
+export * from './files/utils/file-validators';
+export * from './files/utils/json-path.validator';
+export * from './files/utils/file-operation-monitor';
 
 // Export interfaces and configurations
-export * from './src/files/file.module.interface';
-export * from './src/files/config/file.config';
-export * from './src/files/config/view.config';
-export * from './src/config/telegram.config';
+export * from './files/file.module.interface';
+export * from './files/config/file.config';
+export * from './files/config/view.config';
+export * from './config/telegram.config';

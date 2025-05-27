@@ -2,16 +2,18 @@
 src/
 examples/
 test/
+uploads/
 
 # Config files
 .eslintrc.js
 .prettierrc
 .editorconfig
 .gitignore
-tsconfig.json
-tsconfig.build.json
-nest-cli.json
 webpack.config.js
+tsconfig.json
+tsconfig.*.json
+nest-cli.json
+.env*
 
 # IDE files
 .vscode/
@@ -25,18 +27,21 @@ yarn-debug.log*
 yarn-error.log*
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
 
-# Dependency directories
-node_modules/
+# Development files
+swagger-spec.json
 
-# Testing
+# Coverage directory
 coverage/
-.nyc_output
+.nyc_output/
 
 # Temp directories
 .tmp/
 temp/
+
+# Include only dist files
+!dist/

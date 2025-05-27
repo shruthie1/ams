@@ -98,7 +98,14 @@ export class ErrorResponse {
 
 export class JsonFileResponse {
   @ApiProperty({
-    example: { key: 'value' },
+    example: {
+      key: 'value',
+      name: 'example',
+      age: 30,
+      nested: {
+        key: 'value',
+      },
+    },
     description: 'JSON file content',
   })
   content: any;

@@ -71,28 +71,6 @@ export class UpdateFileMetadataDto {
   newFolder?: string;
 }
 
-export class JsonFileResponse {
-  @ApiProperty({
-    example: {
-      name: 'example',
-      age: 30,
-      nested: {
-        key: 'value',
-      },
-    },
-    description: 'JSON file content',
-  })
-  content: any;
-}
-
-export class JsonValueResponse {
-  @ApiProperty({
-    example: 'value',
-    description: 'Value at the specified path in the JSON file',
-  })
-  value: any;
-}
-
 export class JsonPathParams {
   @ApiProperty({
     example: ['user', 'profile', 'name'],

@@ -235,12 +235,12 @@ export class FileController {
     return this.fileService.getFolderDetails(folder, page, limit);
   }
 
-  @Get('stream')
-  @ApiQuery({ name: 'file', required: true })
-  @ApiQuery({ name: 'folder', required: true })
+  @Get('stream/:folder/:file')
+  @ApiParam({ name: 'folder', required: true, description: 'Folder containing the file' })
+  @ApiParam({ name: 'file', required: true, description: 'Name of the video file' })
   async stream(
-    @Query('file') file: string,
-    @Query('folder') folder: string,
+    @Param('file') file: string,
+    @Param('folder') folder: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {

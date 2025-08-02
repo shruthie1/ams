@@ -245,6 +245,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "folder",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -257,9 +265,9 @@
         ]
       }
     },
-    "/download": {
+    "/uploadFromUrl": {
       "post": {
-        "operationId": "FileController_download",
+        "operationId": "FileController_uploadFromUrl",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1539,7 +1547,11 @@
       "UploadByUrlDto": {
         "type": "object",
         "properties": {
-          "videos": {
+          "folder": {
+            "type": "string",
+            "example": "videos"
+          },
+          "files": {
             "type": "object",
             "example": {
               "intro": "https://cdn.example.com/video1.mp4",
@@ -1548,7 +1560,8 @@
           }
         },
         "required": [
-          "videos"
+          "folder",
+          "files"
         ]
       },
       "FileMetadataResponse": {

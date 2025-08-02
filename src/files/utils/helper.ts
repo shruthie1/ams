@@ -1,8 +1,8 @@
-import { extname, basename, resolve } from 'path';
+import path, { extname, basename, resolve } from 'path';
 import { URL } from 'url';
 import * as mime from 'mime-types';
 
-export const VIDEO_ROOT = resolve(__dirname, '../../../videos');
+const VIDEO_ROOT = path.resolve(process.cwd(), 'videos');
 
 export function sanitizeFileName(name: string): string {
   return basename(name, extname(name)).replace(/[^\w.\-]/g, '_');

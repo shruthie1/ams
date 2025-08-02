@@ -9,7 +9,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
-import path, { join, resolve } from 'path';
+import path, { join, resolve, sep } from 'path';
 import * as fs from 'fs';
 import archiver from 'archiver';
 import axios from 'axios';
@@ -41,9 +41,10 @@ import {
   FileModuleOptions,
 } from './file.module.interface';
 import mime from 'mime';
-import { getSafeFilePath, getFileExtension, sanitizeFileName, VIDEO_ROOT } from './utils/helper';
 import { pipeline } from 'stream';
+import { finished } from 'stream/promises';
 import { promisify } from 'util';
+import { getFileExtension, sanitizeFileName } from './utils/helper';
 const streamPipeline = promisify(pipeline);
 
 type MimeType =
@@ -77,15 +78,19 @@ export class FileService implements OnModuleInit {
     );
   }
 
+
   private getSafePath(...segments: string[]): string {
     const filePath = join(...segments);
     const resolvedPath = resolve(filePath);
-    const uploadsPath = resolve(this.config.storagePath);
-    if (!resolvedPath.startsWith(uploadsPath)) {
-      throw new Error(`Invalid path detected: ${resolvedPath}`);
+    const basePath = resolve(this.config.storagePath);
+
+    if (!resolvedPath.startsWith(basePath + sep)) {
+      throw new Error(`Invalid or unsafe path access detected: ${resolvedPath}`);
     }
-    return filePath;
+
+    return resolvedPath; // ✅ return the resolved absolute safe path
   }
+
 
   // Method to validate file type
   public validateFileType(file: Express.Multer.File): boolean {
@@ -1114,15 +1119,17 @@ export class FileService implements OnModuleInit {
     }
   }
 
-  async stream(file: string, req: Request, res: Response): Promise<void> {
+
+  async stream(filename: string, folder: string, req: Request, res: Response): Promise<void> {
     const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    this.logger.log(`[${requestId}] 🎬 Incoming stream request for file: ${file}`);
+    // this.logger.log(`[${requestId}] 🎬 Incoming stream request for file: ${filename}`);
 
     try {
-      const filePath = path.join(VIDEO_ROOT, path.normalize(file));
-      if (!filePath.startsWith(VIDEO_ROOT)) {
-        this.logger.warn(`[${requestId}] ❌ Rejected: Attempted access outside root`);
-        res.status(400).json({ error: 'Invalid file path' });
+      const filePath = this.getSafePath(this.config.storagePath, folder, filename);
+
+      if (!fs.existsSync(filePath)) {
+        this.logger.error(`File not found: ${filename} in folder: ${folder}`);
+        res.status(404).json({ error: 'File not found' });
         return;
       }
 
@@ -1172,7 +1179,7 @@ export class FileService implements OnModuleInit {
         }
 
         const chunkSize = end - start + 1;
-        this.logger.log(`[${requestId}] 📦 Serving range: ${start}-${end}/${fileSize} (${(chunkSize / 1024 / 1024).toFixed(2)}MB)`);
+        this.logger.log(`[${requestId}] 📦 Serving range: ${start}-${end}/${fileSize} (${(chunkSize / 1024 / 1024).toFixed(2)}MB) for ${filename}`);
 
         res.status(206).set({
           'Content-Range': `bytes ${start}-${end}/${fileSize}`,
@@ -1180,13 +1187,14 @@ export class FileService implements OnModuleInit {
         });
 
         const stream = fs.createReadStream(filePath, { start, end });
-        await pipeline(stream, res);
-        this.logger.log(`[${requestId}] ✅ Range stream completed`);
+        stream.pipe(res);
+        await finished(res);
       } else {
         this.logger.log(`[${requestId}] 📤 Serving full file: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
         res.setHeader('Content-Length', fileSize);
         const stream = fs.createReadStream(filePath);
-        await pipeline(stream, res);
+        stream.pipe(res);
+        await finished(res);
         this.logger.log(`[${requestId}] ✅ Full stream completed`);
       }
 
@@ -1199,25 +1207,22 @@ export class FileService implements OnModuleInit {
         this.logger.warn(`[${requestId}] ⚠️ Client disconnected during stream`);
         return;
       }
-      this.logger.error(`[${requestId}] 🛑 Stream error: ${error.message}`);
+      this.logger.error(`[${requestId}] 🛑 Stream error: ${(error as any).message}`);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Internal server error' });
       }
     }
   }
 
-  async uploadVideos(videos: Record<string, string>) {
+
+  async uploadFromUrl(files: Record<string, string>, folderName: string) {
     const results = [];
 
-    if (!fs.existsSync(VIDEO_ROOT)) {
-      fs.mkdirSync(VIDEO_ROOT, { recursive: true });
-      this.logger.log(`📁 Created video root directory at ${VIDEO_ROOT}`);
-    }
-
+    const uploadPath = this.getSafePath(this.config.storagePath, folderName);
     let index = 0;
-    for (const [key, url] of Object.entries(videos)) {
+    for (const [key, url] of Object.entries(files)) {
       index++;
-      this.logger.log(`⬇️ [${index}/${Object.keys(videos).length}] Starting download: ${key}`);
+      this.logger.log(`⬇️ [${index}/${Object.keys(files).length}] Starting download: ${key}`);
 
       try {
         const head = await axios.head(url);
@@ -1225,13 +1230,7 @@ export class FileService implements OnModuleInit {
         const ext = getFileExtension(contentType, url);
         const safeName = sanitizeFileName(key);
         const finalFileName = `${safeName}.${ext}`;
-        const filePath = path.resolve(VIDEO_ROOT, finalFileName);
-
-        if (!filePath.startsWith(VIDEO_ROOT)) {
-          this.logger.warn(`⛔ Skipped (Invalid path): ${key}`);
-          results.push({ file: key, status: 'failed', reason: 'Invalid path' });
-          continue;
-        }
+        const filePath = path.resolve(uploadPath, finalFileName);
 
         if (fs.existsSync(filePath)) {
           this.logger.log(`✅ Skipped (Already exists): ${finalFileName}`);
@@ -1252,7 +1251,7 @@ export class FileService implements OnModuleInit {
       }
     }
 
-    this.logger.log(`📦 Download summary - Total: ${Object.keys(videos).length}, Success: ${results.filter(r => r.status === 'success').length}, Skipped: ${results.filter(r => r.status === 'skipped').length}, Failed: ${results.filter(r => r.status === 'failed').length}`);
+    this.logger.log(`📦 Download summary - Total: ${Object.keys(files).length}, Success: ${results.filter(r => r.status === 'success').length}, Skipped: ${results.filter(r => r.status === 'skipped').length}, Failed: ${results.filter(r => r.status === 'failed').length}`);
 
     return { results };
   }

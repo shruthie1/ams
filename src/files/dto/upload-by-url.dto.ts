@@ -1,13 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUrl, IsObject } from 'class-validator';
+import { IsUrl, IsObject, IsString, IsNotEmpty } from 'class-validator';
 
 export class UploadByUrlDto {
-  @ApiProperty({
-    example: {
-      intro: 'https://cdn.example.com/video1.mp4',
-      welcome: 'https://cdn.example.com/welcome',
-    },
-  })
-  @IsObject()
-  videos: Record<string, string>;
+    @ApiProperty({ example: "videos" })
+    @IsString()
+    @IsNotEmpty()
+    folder: string;
+
+    @ApiProperty({
+        example: {
+            intro: 'https://cdn.example.com/video1.mp4',
+            welcome: 'https://cdn.example.com/welcome',
+        },
+    })
+    @IsObject()
+    files: Record<string, string>;
 }

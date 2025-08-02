@@ -9,9 +9,10 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
-import { join, resolve } from 'path';
+import path, { join, resolve } from 'path';
 import * as fs from 'fs';
 import archiver from 'archiver';
+import axios from 'axios';
 import { FILE_CONFIG } from './config/file.config';
 import { VIEW_CONFIG } from './config/view.config';
 import { createReadStream } from 'fs';
@@ -39,6 +40,11 @@ import {
   FILE_MODULE_OPTIONS,
   FileModuleOptions,
 } from './file.module.interface';
+import mime from 'mime';
+import { getSafeFilePath, getFileExtension, sanitizeFileName, VIDEO_ROOT } from './utils/helper';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
+const streamPipeline = promisify(pipeline);
 
 type MimeType =
   | (typeof VIEW_CONFIG.IMAGE_TYPES)[number]
@@ -1106,5 +1112,93 @@ export class FileService implements OnModuleInit {
       this.logger.error(`Error copying folder: ${error.message}`);
       throw new InternalServerErrorException('Error copying folder');
     }
+  }
+
+  async streamVideo(file: string, req: Request, res: Response) {
+    const filePath = getSafeFilePath(file);
+    if (!filePath || !fs.existsSync(filePath)) {
+      throw new Error('File not found');
+    }
+
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+    if (!mimeType.startsWith('video/')) {
+      throw new Error('Invalid file type');
+    }
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize || end >= fileSize) {
+        res.status(416).send('Requested Range Not Satisfiable');
+        return;
+      }
+
+      const chunkSize = end - start + 1;
+      const stream = fs.createReadStream(filePath, { start, end });
+
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': mimeType,
+      });
+
+      stream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': mimeType,
+      });
+
+      fs.createReadStream(filePath).pipe(res);
+    }
+  }
+
+  async downloadVideos(videos: Record<string, string>) {
+    const results = [];
+
+    // Ensure root path exists
+    if (!fs.existsSync(VIDEO_ROOT)) {
+      fs.mkdirSync(VIDEO_ROOT, { recursive: true });
+    }
+
+    for (const [key, url] of Object.entries(videos)) {
+      try {
+        const head = await axios.head(url);
+        const contentType = head.headers['content-type'];
+        const ext = getFileExtension(contentType, url);
+        const safeName = sanitizeFileName(key);
+        const finalFileName = `${safeName}.${ext}`;
+        const filePath = path.resolve(VIDEO_ROOT, finalFileName);
+
+        if (!filePath.startsWith(VIDEO_ROOT)) {
+          results.push({ file: key, status: 'failed', reason: 'Invalid path' });
+          continue;
+        }
+
+        if (fs.existsSync(filePath)) {
+          results.push({ file: finalFileName, status: 'skipped', reason: 'Already exists' });
+          continue;
+        }
+
+        // Ensure parent directory of file path exists (even though VIDEO_ROOT exists)
+        const dir = path.dirname(filePath);
+        fs.mkdirSync(dir, { recursive: true });
+
+        const download = await axios.get(url, { responseType: 'stream' });
+        await streamPipeline(download.data, fs.createWriteStream(filePath));
+        results.push({ file: finalFileName, status: 'success' });
+      } catch (err) {
+        results.push({ file: key, status: 'failed', reason: err.message });
+      }
+    }
+
+    return { results };
   }
 }

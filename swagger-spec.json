@@ -16,7 +16,7 @@
         ]
       }
     },
-    "/files/folders/{folder}/files": {
+    "/folders/{folder}/files": {
       "post": {
         "description": "Upload single or multiple files to a specified folder",
         "operationId": "FileController_uploadFiles",
@@ -68,7 +68,7 @@
         },
         "summary": "Upload files to a folder",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       },
       "get": {
@@ -91,11 +91,11 @@
         },
         "summary": "List all files in a folder",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders": {
+    "/folders": {
       "get": {
         "operationId": "FileController_listFolders",
         "parameters": [],
@@ -123,8 +123,7 @@
         },
         "summary": "List all folders",
         "tags": [
-          "Folders & Files",
-          "Folder Management"
+          "File"
         ]
       },
       "post": {
@@ -155,12 +154,11 @@
         },
         "summary": "Create a new folder",
         "tags": [
-          "Folders & Files",
-          "Folder Management"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}": {
+    "/folders/{folder}": {
       "get": {
         "operationId": "FileController_getFolderDetails",
         "parameters": [
@@ -209,7 +207,7 @@
         },
         "summary": "Get folder details and list files",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       },
       "delete": {
@@ -232,12 +230,58 @@
         },
         "summary": "Delete a folder and all its contents",
         "tags": [
-          "Folders & Files",
-          "Folder Management"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/download": {
+    "/stream": {
+      "get": {
+        "operationId": "FileController_stream",
+        "parameters": [
+          {
+            "name": "file",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/download": {
+      "post": {
+        "operationId": "FileController_download",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadByUrlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "File"
+        ]
+      }
+    },
+    "/folders/{folder}/files/{filename}/download": {
       "get": {
         "operationId": "FileController_downloadFile",
         "parameters": [
@@ -267,12 +311,11 @@
         },
         "summary": "Download a file from a folder",
         "tags": [
-          "Folders & Files",
-          "File Operations"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/metadata": {
+    "/folders/{folder}/files/{filename}/metadata": {
       "get": {
         "operationId": "FileController_getFileMetadata",
         "parameters": [
@@ -312,8 +355,7 @@
         },
         "summary": "Get metadata of a file",
         "tags": [
-          "Folders & Files",
-          "File Metadata"
+          "File"
         ]
       },
       "put": {
@@ -371,12 +413,11 @@
         },
         "summary": "Update file metadata",
         "tags": [
-          "Folders & Files",
-          "File Metadata"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/move": {
+    "/folders/{folder}/files/{filename}/move": {
       "put": {
         "operationId": "FileController_moveFile",
         "parameters": [
@@ -430,11 +471,11 @@
         },
         "summary": "Move or rename a file",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/copy": {
+    "/folders/{folder}/files/{filename}/copy": {
       "post": {
         "operationId": "FileController_copyFile",
         "parameters": [
@@ -485,11 +526,11 @@
         },
         "summary": "Copy a file to another location",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/download-all": {
+    "/folders/{folder}/files/download-all": {
       "get": {
         "operationId": "FileController_downloadAllFiles",
         "parameters": [
@@ -510,11 +551,11 @@
         },
         "summary": "Download all files in a folder as a ZIP archive",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/temp-links": {
+    "/folders/{folder}/files/temp-links": {
       "get": {
         "operationId": "FileController_getTemporaryLinks",
         "parameters": [
@@ -535,11 +576,11 @@
         },
         "summary": "Get temporary access links for all files in a folder",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/temp-link": {
+    "/folders/{folder}/files/{filename}/temp-link": {
       "get": {
         "operationId": "FileController_getTemporaryFileLink",
         "parameters": [
@@ -569,12 +610,11 @@
         },
         "summary": "Generate a temporary access link for a file",
         "tags": [
-          "Folders & Files",
-          "File Sharing"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/search": {
+    "/folders/{folder}/files/search": {
       "get": {
         "operationId": "FileController_searchFiles",
         "parameters": [
@@ -604,12 +644,11 @@
         },
         "summary": "Search for files by name in a folder",
         "tags": [
-          "Folders & Files",
-          "Search & Browse"
+          "File"
         ]
       }
     },
-    "/files/json/folders/{folder}/files/{filename}": {
+    "/json/folders/{folder}/files/{filename}": {
       "get": {
         "description": "Returns the complete contents of a JSON file",
         "operationId": "FileController_getJsonFile",
@@ -665,12 +704,11 @@
         },
         "summary": "Retrieve the entire JSON file",
         "tags": [
-          "Folders & Files",
-          "JSON Operations"
+          "File"
         ]
       }
     },
-    "/files/json/folders/{folder}/files/{filename}/*path": {
+    "/json/folders/{folder}/files/{filename}/{path}": {
       "get": {
         "description": "Returns a specific value from a JSON file using a path with / as separator",
         "operationId": "FileController_getNestedJsonValue",
@@ -743,12 +781,11 @@
         },
         "summary": "Retrieve a nested value from a JSON file by key path",
         "tags": [
-          "Folders & Files",
-          "JSON Operations"
+          "File"
         ]
       }
     },
-    "/files/json/folders/{folder}/files/{filename}/query": {
+    "/json/folders/{folder}/files/{filename}/query": {
       "get": {
         "description": "Query JSON data using dot notation and array indices. Example: users[0].profile.name",
         "operationId": "FileController_queryJsonFile",
@@ -813,12 +850,11 @@
         },
         "summary": "Query a JSON file using dot notation",
         "tags": [
-          "Folders & Files",
-          "JSON Operations"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}": {
+    "/folders/{folder}/files/{filename}": {
       "delete": {
         "operationId": "FileController_deleteFile",
         "parameters": [
@@ -848,8 +884,7 @@
         },
         "summary": "Delete a file from a folder",
         "tags": [
-          "Folders & Files",
-          "File Operations"
+          "File"
         ]
       },
       "get": {
@@ -881,12 +916,11 @@
         },
         "summary": "Retrieve a file from a folder",
         "tags": [
-          "Folders & Files",
-          "File Operations"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/size": {
+    "/folders/{folder}/size": {
       "get": {
         "operationId": "FileController_getFolderSize",
         "parameters": [
@@ -907,11 +941,11 @@
         },
         "summary": "Get the total size of a folder",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/thumbnail": {
+    "/folders/{folder}/files/{filename}/thumbnail": {
       "get": {
         "operationId": "FileController_getThumbnail",
         "parameters": [
@@ -941,11 +975,11 @@
         },
         "summary": "Get a thumbnail of an image or video file",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/rename": {
+    "/folders/{folder}/rename": {
       "put": {
         "operationId": "FileController_renameFolder",
         "parameters": [
@@ -987,12 +1021,11 @@
         },
         "summary": "Rename a folder",
         "tags": [
-          "Folders & Files",
-          "Folder Management"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/move": {
+    "/folders/{folder}/move": {
       "put": {
         "operationId": "FileController_moveFolder",
         "parameters": [
@@ -1034,12 +1067,11 @@
         },
         "summary": "Move a folder to a different location",
         "tags": [
-          "Folders & Files",
-          "Folder Management"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/preview": {
+    "/folders/{folder}/files/{filename}/preview": {
       "get": {
         "operationId": "FileController_getFilePreview",
         "parameters": [
@@ -1069,11 +1101,11 @@
         },
         "summary": "Get a preview of a file",
         "tags": [
-          "Folders & Files"
+          "File"
         ]
       }
     },
-    "/files/folders/tree": {
+    "/folders/tree": {
       "get": {
         "operationId": "FileController_getFolderTree",
         "parameters": [],
@@ -1091,12 +1123,11 @@
         },
         "summary": "Get a hierarchical tree structure of folders and files",
         "tags": [
-          "Folders & Files",
-          "Search & Browse"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/share": {
+    "/folders/{folder}/files/{filename}/share": {
       "post": {
         "operationId": "FileController_generateShareableLink",
         "parameters": [
@@ -1136,12 +1167,11 @@
         },
         "summary": "Generate a shareable link for a file",
         "tags": [
-          "Folders & Files",
-          "File Sharing"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/lock": {
+    "/folders/{folder}/files/{filename}/lock": {
       "put": {
         "operationId": "FileController_lockFile",
         "parameters": [
@@ -1198,12 +1228,11 @@
         },
         "summary": "Lock a file for editing",
         "tags": [
-          "Folders & Files",
-          "File Locking"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/unlock": {
+    "/folders/{folder}/files/{filename}/unlock": {
       "put": {
         "operationId": "FileController_unlockFile",
         "parameters": [
@@ -1233,12 +1262,11 @@
         },
         "summary": "Unlock a file for editing",
         "tags": [
-          "Folders & Files",
-          "File Locking"
+          "File"
         ]
       }
     },
-    "/files/files/recent": {
+    "/files/recent": {
       "get": {
         "operationId": "FileController_getRecentFiles",
         "parameters": [],
@@ -1249,12 +1277,11 @@
         },
         "summary": "Get a list of recently modified files",
         "tags": [
-          "Folders & Files",
-          "Search & Browse"
+          "File"
         ]
       }
     },
-    "/files/folders/{folder}/files/{filename}/versions": {
+    "/folders/{folder}/files/{filename}/versions": {
       "get": {
         "operationId": "FileController_getFileVersions",
         "parameters": [
@@ -1294,12 +1321,11 @@
         },
         "summary": "Get different versions of a file",
         "tags": [
-          "Folders & Files",
-          "File Versions"
+          "File"
         ]
       }
     },
-    "/files/metrics/file-operations": {
+    "/metrics/file-operations": {
       "get": {
         "description": "Retrieve metrics about recent file operations including success rate and performance data",
         "operationId": "FileController_getFileOperationMetrics",
@@ -1339,7 +1365,76 @@
         },
         "summary": "Get file operation metrics",
         "tags": [
-          "Folders & Files"
+          "File"
+        ]
+      }
+    },
+    "/folders/{folder}/copy": {
+      "post": {
+        "description": "Creates a copy of a folder and all its contents at a new location",
+        "operationId": "FileController_copyFolder",
+        "parameters": [
+          {
+            "name": "folder",
+            "required": true,
+            "in": "path",
+            "description": "Source folder name to copy",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "destinationFolder"
+                ],
+                "properties": {
+                  "destinationFolder": {
+                    "type": "string",
+                    "description": "Name of the destination folder where the copy will be created"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Folder copied successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "sourceFolder": {
+                      "type": "string"
+                    },
+                    "destinationFolder": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid destination or destination already exists"
+          },
+          "404": {
+            "description": "Source folder not found"
+          }
+        },
+        "summary": "Copy a folder to a new location",
+        "tags": [
+          "File"
         ]
       }
     }
@@ -1441,6 +1536,21 @@
           "limit"
         ]
       },
+      "UploadByUrlDto": {
+        "type": "object",
+        "properties": {
+          "videos": {
+            "type": "object",
+            "example": {
+              "intro": "https://cdn.example.com/video1.mp4",
+              "welcome": "https://cdn.example.com/welcome"
+            }
+          }
+        },
+        "required": [
+          "videos"
+        ]
+      },
       "FileMetadataResponse": {
         "type": "object",
         "properties": {
@@ -1480,7 +1590,12 @@
           "content": {
             "type": "object",
             "example": {
-              "key": "value"
+              "key": "value",
+              "name": "example",
+              "age": 30,
+              "nested": {
+                "key": "value"
+              }
             },
             "description": "JSON file content"
           }

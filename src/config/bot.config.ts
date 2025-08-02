@@ -17,6 +17,52 @@ export interface tgConfig {
   adminChatId?: string;
 }
 
+export class BotUtils {
+  private static config: tgConfig;
+
+  static initialize(config: tgConfig) {
+    this.config = config;
+  }
+
+  static getChannelById(channelId: string): tgChannelConfig | undefined {
+    return this.config?.channels.find(
+      (channel) => channel.channelId === channelId,
+    );
+  }
+
+  static getChannelsByBotToken(botToken: string): tgChannelConfig[] {
+    return this.config?.channels.filter((channel) =>
+      channel.botTokens.includes(botToken),
+    ) || [];
+  }
+
+  static canBotAccessChannel(botToken: string, channelId: string): boolean {
+    const channel = this.getChannelById(channelId);
+    return channel ? channel.botTokens.includes(botToken) : false;
+  }
+
+  static getBotsForChannel(channelId: string): tgBotConfig[] {
+    const channel = this.getChannelById(channelId);
+    if (!channel) return [];
+
+    return this.config?.bots.filter((bot) =>
+      channel.botTokens.includes(bot.token),
+    ) || [];
+  }
+
+  static getAllChannels(): tgChannelConfig[] {
+    return this.config?.channels || [];
+  }
+
+  static getAllBots(): tgBotConfig[] {
+    return this.config?.bots || [];
+  }
+
+  static getAdminChatId(): string | undefined {
+    return this.config?.adminChatId;
+  }
+}
+
 export default registerAs('bot', () => {
   const maxOps = parseInt(process.env.bot_BOT_MAX_OPERATIONS || '10');
   const adminChatId = process.env.bot_ADMIN_CHAT_ID;
@@ -61,6 +107,10 @@ export default registerAs('bot', () => {
     channels: channelConfigs,
     adminChatId,
   };
+
+  // Initialize the BotUtils with the config
+  BotUtils.initialize(config);
+
   console.log('Loaded bot configuration:', {
     botsCount: config.bots.length,
     channelsCount: config.channels.length,
@@ -85,7 +135,7 @@ function parseChannelConfigs(): tgChannelConfig[] {
 
   // Find all channel config variables (they can be in any order)
   const channelConfigVars = envVars.filter((key) =>
-    key.startsWith('bot_CHANNEL_CONFIG_'),
+    key.startsWith('TELEGRAM_CHANNEL_'),
   );
 
   for (const configVar of channelConfigVars) {

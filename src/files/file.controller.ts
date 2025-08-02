@@ -60,6 +60,7 @@ import {
 } from './dto/responses.dto';
 import { JsonPathParams } from './dto/requests.dto';
 import { FileOperationMonitor } from './utils/file-operation-monitor';
+import { UploadByUrlDto } from './dto/upload-by-url.dto';
 
 const MAX_FILE_SIZE = 1024 * 1024 * 100; // 100MB
 const UPLOADS_BASE = join(process.cwd(), 'uploads');
@@ -73,7 +74,7 @@ function getSafePath(...segments: string[]): string {
   }
   return filePath;
 }
-@ApiTags('Folders & Files')
+//@ApiTags('Folders & Files')
 @Injectable()
 @Controller()
 export class FileController {
@@ -187,7 +188,7 @@ export class FileController {
   // Folder Endpoints
   // =====================================================
 
-  @ApiTags('Folder Management')
+  //@ApiTags('Folder Management')
   @Get('folders')
   @ApiOperation({ summary: 'List all folders' })
   @ApiResponse({
@@ -234,7 +235,19 @@ export class FileController {
     return this.fileService.getFolderDetails(folder, page, limit);
   }
 
-  @ApiTags('Folder Management')
+  @Get('stream')
+  @ApiQuery({ name: 'file', required: true })
+  async stream(@Query('file') file: string, @Req() req: Request, @Res() res: Response) {
+    return this.fileService.streamVideo(file, req, res);
+  }
+
+  @Post('download')
+  @ApiBody({ type: UploadByUrlDto })
+  async download(@Body() body: UploadByUrlDto) {
+    return this.fileService.downloadVideos(body.videos);
+  }
+
+  //@ApiTags('Folder Management')
   @Post('folders')
   @ApiOperation({ summary: 'Create a new folder' })
   @ApiResponse({
@@ -252,7 +265,7 @@ export class FileController {
     return this.fileService.createFolder(createFolderDto.folderName);
   }
 
-  @ApiTags('Folder Management')
+  //@ApiTags('Folder Management')
   @Delete('folders/:folder')
   @ApiOperation({ summary: 'Delete a folder and all its contents' })
   @ApiParam({ name: 'folder', description: 'Folder to delete' })
@@ -265,7 +278,7 @@ export class FileController {
   // File Endpoints (Nested under folders)
   // =====================================================
 
-  @ApiTags('File Operations')
+  //@ApiTags('File Operations')
   @Get('folders/:folder/files/:filename/download')
   @ApiOperation({ summary: 'Download a file from a folder' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -278,7 +291,7 @@ export class FileController {
     return this.fileService.downloadFile(folder, filename, res);
   }
 
-  @ApiTags('File Metadata')
+  //@ApiTags('File Metadata')
   @Get('folders/:folder/files/:filename/metadata')
   @ApiOperation({ summary: 'Get metadata of a file' })
   @ApiResponse({
@@ -369,7 +382,7 @@ export class FileController {
     return this.fileService.getTemporaryLinks(folder);
   }
 
-  @ApiTags('File Sharing')
+  //@ApiTags('File Sharing')
   @Get('folders/:folder/files/:filename/temp-link')
   @ApiOperation({ summary: 'Generate a temporary access link for a file' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -381,7 +394,7 @@ export class FileController {
     return this.fileService.getTemporaryFileLink(folder, filename);
   }
 
-  @ApiTags('Search & Browse')
+  //@ApiTags('Search & Browse')
   @Get('folders/:folder/files/search')
   @ApiOperation({ summary: 'Search for files by name in a folder' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -401,7 +414,7 @@ export class FileController {
   // JSON File Endpoints (with dedicated "json" prefix)
   // =====================================================
 
-  @ApiTags('JSON Operations')
+  //@ApiTags('JSON Operations')
   @Get('json/folders/:folder/files/:filename')
   @ApiOperation({
     summary: 'Retrieve the entire JSON file',
@@ -429,7 +442,7 @@ export class FileController {
     return this.fileService.getJsonFile(folder, filename);
   }
 
-  @ApiTags('JSON Operations')
+  //@ApiTags('JSON Operations')
   @Get('json/folders/:folder/files/:filename/*path')
   @ApiOperation({
     summary: 'Retrieve a nested value from a JSON file by key path',
@@ -464,7 +477,7 @@ export class FileController {
     return this.fileService.getNestedJsonValue(folder, filename, pathParams);
   }
 
-  @ApiTags('JSON Operations')
+  //@ApiTags('JSON Operations')
   @Get('json/folders/:folder/files/:filename/query')
   @ApiOperation({
     summary: 'Query a JSON file using dot notation',
@@ -506,7 +519,7 @@ export class FileController {
   // Additional File Endpoints
   // =====================================================
 
-  @ApiTags('File Operations')
+  //@ApiTags('File Operations')
   @Delete('folders/:folder/files/:filename')
   @ApiOperation({ summary: 'Delete a file from a folder' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -518,7 +531,7 @@ export class FileController {
     return this.fileService.deleteFile(folder, filename);
   }
 
-  @ApiTags('File Metadata')
+  //@ApiTags('File Metadata')
   @Put('folders/:folder/files/:filename/metadata')
   @ApiOperation({ summary: 'Update file metadata' })
   @ApiResponse({
@@ -581,7 +594,7 @@ export class FileController {
   // File Retrieval Endpoint (Catch-all for file serving)
   // =====================================================
 
-  @ApiTags('File Operations')
+  //@ApiTags('File Operations')
   @Get('folders/:folder/files/:filename')
   @ApiOperation({ summary: 'Retrieve a file from a folder' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -599,7 +612,7 @@ export class FileController {
   // Additional Folder Endpoints
   // =====================================================
 
-  @ApiTags('Folder Management')
+  //@ApiTags('Folder Management')
   @Put('folders/:folder/rename')
   @ApiOperation({ summary: 'Rename a folder' })
   @ApiResponse({ status: 200, description: 'Folder renamed successfully' })
@@ -619,7 +632,7 @@ export class FileController {
     return this.fileService.renameFolder(folder, renameFolderDto.newFolderName);
   }
 
-  @ApiTags('Folder Management')
+  //@ApiTags('Folder Management')
   @Put('folders/:folder/move')
   @ApiOperation({ summary: 'Move a folder to a different location' })
   @ApiResponse({ status: 200, description: 'Folder moved successfully' })
@@ -649,7 +662,7 @@ export class FileController {
     return this.fileService.getFilePreview(folder, filename, req, res);
   }
 
-  @ApiTags('Search & Browse')
+  //@ApiTags('Search & Browse')
   @Get('folders/tree')
   @ApiOperation({
     summary: 'Get a hierarchical tree structure of folders and files',
@@ -663,7 +676,7 @@ export class FileController {
     return this.fileService.getFolderTree();
   }
 
-  @ApiTags('File Sharing')
+  //@ApiTags('File Sharing')
   @Post('folders/:folder/files/:filename/share')
   @ApiOperation({ summary: 'Generate a shareable link for a file' })
   @ApiResponse({
@@ -684,7 +697,7 @@ export class FileController {
     return this.fileService.generateShareableLink(folder, filename);
   }
 
-  @ApiTags('File Locking')
+  //@ApiTags('File Locking')
   @Put('folders/:folder/files/:filename/lock')
   @ApiOperation({ summary: 'Lock a file for editing' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -711,7 +724,7 @@ export class FileController {
     return this.fileService.lockFile(folder, filename);
   }
 
-  @ApiTags('File Locking')
+  //@ApiTags('File Locking')
   @Put('folders/:folder/files/:filename/unlock')
   @ApiOperation({ summary: 'Unlock a file for editing' })
   @ApiParam({ name: 'folder', description: 'Folder name' })
@@ -723,14 +736,14 @@ export class FileController {
     return this.fileService.unlockFile(folder, filename);
   }
 
-  @ApiTags('Search & Browse')
+  //@ApiTags('Search & Browse')
   @Get('files/recent')
   @ApiOperation({ summary: 'Get a list of recently modified files' })
   getRecentFiles() {
     return this.fileService.getRecentFiles();
   }
 
-  @ApiTags('File Versions')
+  //@ApiTags('File Versions')
   @Get('folders/:folder/files/:filename/versions')
   @ApiOperation({ summary: 'Get different versions of a file' })
   @ApiResponse({
@@ -792,7 +805,7 @@ export class FileController {
     };
   }
 
-  @ApiTags('Folder Management')
+  //@ApiTags('Folder Management')
   @Post('folders/:folder/copy')
   @ApiOperation({
     summary: 'Copy a folder to a new location',

@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import bot from 'node-telegram-bot-api';
 import { botLoadBalancer } from './bot.load-balancer';
-import { tgConfig } from '../config/bot.config';
+import botConfig, { BotUtils, tgConfig } from '../config/bot.config';
 import {
   BroadcastMessageDto,
   BotStatusResponseDto,
@@ -107,8 +107,8 @@ export class botService implements OnModuleInit {
       `Processing message queue. Size: ${this.messageQueue.size}`,
     );
     for (const [messageId, queueItem] of this.messageQueue) {
+      const bot = this.loadBalancer.getNextBot();
       try {
-        const bot = this.loadBalancer.getNextBot();
         await this.forwardMessage(bot, queueItem.message, queueItem.channelId);
         this.messageQueue.delete(messageId);
         this.logger.debug(`Successfully processed queued message ${messageId}`);
@@ -116,7 +116,7 @@ export class botService implements OnModuleInit {
         if (queueItem.retries >= this.MAX_RETRIES) {
           this.messageQueue.delete(messageId);
           this.logger.error(
-            `Failed to forward message ${messageId} after ${this.MAX_RETRIES} retries:`,
+            `Failed to forward message ${messageId} after ${this.MAX_RETRIES} ${(await bot.getMe()).username} retries:`,
             error.stack,
           );
           this.notifyAdmin(
@@ -269,7 +269,7 @@ export class botService implements OnModuleInit {
       this.logger.debug(`Message ${messageId} forwarded successfully`);
     } catch (error) {
       this.logger.error(
-        `Failed to forward message ${messageId} using bot...`,
+        `Failed to forward message ${messageId} using bot... ${(await bot.getMe()).username}, Text: ${message.text}, Channel: ${channelId }`,
         error.stack,
       );
       this.logger.debug(

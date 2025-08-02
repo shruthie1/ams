@@ -238,13 +238,13 @@ export class FileController {
   @Get('stream')
   @ApiQuery({ name: 'file', required: true })
   async stream(@Query('file') file: string, @Req() req: Request, @Res() res: Response) {
-    return this.fileService.streamVideo(file, req, res);
+    return this.fileService.stream(file, req, res);
   }
 
-  @Post('download')
+  @Post('upload')
   @ApiBody({ type: UploadByUrlDto })
-  async download(@Body() body: UploadByUrlDto) {
-    return this.fileService.downloadVideos(body.videos);
+  async upload(@Body() body: UploadByUrlDto) {
+    return this.fileService.uploadVideos(body.videos);
   }
 
   //@ApiTags('Folder Management')

@@ -1114,61 +1114,111 @@ export class FileService implements OnModuleInit {
     }
   }
 
-  async streamVideo(file: string, req: Request, res: Response) {
-    const filePath = getSafeFilePath(file);
-    if (!filePath || !fs.existsSync(filePath)) {
-      throw new Error('File not found');
-    }
+  async stream(file: string, req: Request, res: Response): Promise<void> {
+    const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    this.logger.log(`[${requestId}] 🎬 Incoming stream request for file: ${file}`);
 
-    const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
-    const range = req.headers.range;
-
-    const mimeType = mime.lookup(filePath) || 'application/octet-stream';
-    if (!mimeType.startsWith('video/')) {
-      throw new Error('Invalid file type');
-    }
-
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
-      if (start >= fileSize || end >= fileSize) {
-        res.status(416).send('Requested Range Not Satisfiable');
+    try {
+      const filePath = path.join(VIDEO_ROOT, path.normalize(file));
+      if (!filePath.startsWith(VIDEO_ROOT)) {
+        this.logger.warn(`[${requestId}] ❌ Rejected: Attempted access outside root`);
+        res.status(400).json({ error: 'Invalid file path' });
         return;
       }
 
-      const chunkSize = end - start + 1;
-      const stream = fs.createReadStream(filePath, { start, end });
+      await fs.promises.access(filePath, fs.constants.F_OK | fs.constants.R_OK);
+      const stat = await fs.promises.stat(filePath);
 
-      res.writeHead(206, {
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunkSize,
-        'Content-Type': mimeType,
+      if (!stat.isFile() || stat.size === 0) {
+        this.logger.warn(`[${requestId}] ❌ Invalid file: not a regular file or empty`);
+        res.status(400).json({ error: 'Invalid or empty video file' });
+        return;
+      }
+
+      const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+      if (!mimeType.startsWith('video/')) {
+        this.logger.warn(`[${requestId}] ❌ Unsupported media type: ${mimeType}`);
+        res.status(415).json({ error: 'Only video files are supported' });
+        return;
+      }
+
+      const fileSize = stat.size;
+      const etag = `"${fileSize}-${stat.mtime.getTime()}"`;
+
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Last-Modified', stat.mtime.toUTCString());
+      res.setHeader('Connection', 'keep-alive');
+
+      if (req.headers['if-none-match'] === etag) {
+        this.logger.log(`[${requestId}] ✅ 304 Not Modified`);
+        res.status(304).end();
+        return;
+      }
+
+      const range = req.headers.range;
+
+      if (range) {
+        const match = /bytes=(\d*)-(\d*)/.exec(range);
+        const start = match?.[1] ? parseInt(match[1], 10) : 0;
+        const end = match?.[2] ? parseInt(match[2], 10) : fileSize - 1;
+
+        if (isNaN(start) || isNaN(end) || start > end || end >= fileSize) {
+          this.logger.warn(`[${requestId}] ❌ Invalid range: ${range}`);
+          res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).json({ error: 'Invalid range' });
+          return;
+        }
+
+        const chunkSize = end - start + 1;
+        this.logger.log(`[${requestId}] 📦 Serving range: ${start}-${end}/${fileSize} (${(chunkSize / 1024 / 1024).toFixed(2)}MB)`);
+
+        res.status(206).set({
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': chunkSize,
+        });
+
+        const stream = fs.createReadStream(filePath, { start, end });
+        await pipeline(stream, res);
+        this.logger.log(`[${requestId}] ✅ Range stream completed`);
+      } else {
+        this.logger.log(`[${requestId}] 📤 Serving full file: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+        res.setHeader('Content-Length', fileSize);
+        const stream = fs.createReadStream(filePath);
+        await pipeline(stream, res);
+        this.logger.log(`[${requestId}] ✅ Full stream completed`);
+      }
+
+      req.on('close', () => {
+        this.logger.verbose(`[${requestId}] 🚪 Client closed connection`);
       });
 
-      stream.pipe(res);
-    } else {
-      res.writeHead(200, {
-        'Content-Length': fileSize,
-        'Content-Type': mimeType,
-      });
-
-      fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+      if ((error as any).code === 'ECONNRESET') {
+        this.logger.warn(`[${requestId}] ⚠️ Client disconnected during stream`);
+        return;
+      }
+      this.logger.error(`[${requestId}] 🛑 Stream error: ${error.message}`);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   }
 
-  async downloadVideos(videos: Record<string, string>) {
+  async uploadVideos(videos: Record<string, string>) {
     const results = [];
 
-    // Ensure root path exists
     if (!fs.existsSync(VIDEO_ROOT)) {
       fs.mkdirSync(VIDEO_ROOT, { recursive: true });
+      this.logger.log(`📁 Created video root directory at ${VIDEO_ROOT}`);
     }
 
+    let index = 0;
     for (const [key, url] of Object.entries(videos)) {
+      index++;
+      this.logger.log(`⬇️ [${index}/${Object.keys(videos).length}] Starting download: ${key}`);
+
       try {
         const head = await axios.head(url);
         const contentType = head.headers['content-type'];
@@ -1178,27 +1228,33 @@ export class FileService implements OnModuleInit {
         const filePath = path.resolve(VIDEO_ROOT, finalFileName);
 
         if (!filePath.startsWith(VIDEO_ROOT)) {
+          this.logger.warn(`⛔ Skipped (Invalid path): ${key}`);
           results.push({ file: key, status: 'failed', reason: 'Invalid path' });
           continue;
         }
 
         if (fs.existsSync(filePath)) {
+          this.logger.log(`✅ Skipped (Already exists): ${finalFileName}`);
           results.push({ file: finalFileName, status: 'skipped', reason: 'Already exists' });
           continue;
         }
 
-        // Ensure parent directory of file path exists (even though VIDEO_ROOT exists)
-        const dir = path.dirname(filePath);
-        fs.mkdirSync(dir, { recursive: true });
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
-        const download = await axios.get(url, { responseType: 'stream' });
-        await streamPipeline(download.data, fs.createWriteStream(filePath));
+        const response = await axios.get(url, { responseType: 'stream' });
+        await streamPipeline(response.data, fs.createWriteStream(filePath));
+
+        this.logger.log(`🎉 Downloaded: ${finalFileName}`);
         results.push({ file: finalFileName, status: 'success' });
       } catch (err) {
+        this.logger.warn(`⚠️ Failed to download ${key}: ${err.message}`);
         results.push({ file: key, status: 'failed', reason: err.message });
       }
     }
 
+    this.logger.log(`📦 Download summary - Total: ${Object.keys(videos).length}, Success: ${results.filter(r => r.status === 'success').length}, Skipped: ${results.filter(r => r.status === 'skipped').length}, Failed: ${results.filter(r => r.status === 'failed').length}`);
+
     return { results };
   }
+
 }

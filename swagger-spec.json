@@ -234,14 +234,15 @@
         ]
       }
     },
-    "/stream": {
+    "/stream/{folder}/{file}": {
       "get": {
         "operationId": "FileController_stream",
         "parameters": [
           {
             "name": "file",
             "required": true,
-            "in": "query",
+            "in": "path",
+            "description": "Name of the video file",
             "schema": {
               "type": "string"
             }
@@ -249,7 +250,8 @@
           {
             "name": "folder",
             "required": true,
-            "in": "query",
+            "in": "path",
+            "description": "Folder containing the file",
             "schema": {
               "type": "string"
             }

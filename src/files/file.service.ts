@@ -1118,17 +1118,14 @@ export class FileService implements OnModuleInit {
       throw new InternalServerErrorException('Error copying folder');
     }
   }
-
-
   async stream(filename: string, folder: string, req: Request, res: Response): Promise<void> {
     const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    // this.logger.log(`[${requestId}] 🎬 Incoming stream request for file: ${filename}`);
 
     try {
       const filePath = this.getSafePath(this.config.storagePath, folder, filename);
 
       if (!fs.existsSync(filePath)) {
-        this.logger.error(`File not found: ${filename} in folder: ${folder}`);
+        this.logger.error(`[${requestId}] ❌ File not found: ${filename} in folder: ${folder}`);
         res.status(404).json({ error: 'File not found' });
         return;
       }
@@ -1151,13 +1148,16 @@ export class FileService implements OnModuleInit {
 
       const fileSize = stat.size;
       const etag = `"${fileSize}-${stat.mtime.getTime()}"`;
+      const lastModified = stat.mtime.toUTCString();
 
+      // Caching headers
       res.setHeader('ETag', etag);
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Cache-Control', 'public, max-age=14400'); // 4 hours CDN/browser cache
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Content-Type', mimeType);
-      res.setHeader('Last-Modified', stat.mtime.toUTCString());
+      res.setHeader('Last-Modified', lastModified);
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
 
       if (req.headers['if-none-match'] === etag) {
         this.logger.log(`[${requestId}] ✅ 304 Not Modified`);
@@ -1179,19 +1179,33 @@ export class FileService implements OnModuleInit {
         }
 
         const chunkSize = end - start + 1;
-        this.logger.log(`[${requestId}] 📦 Serving range: ${start}-${end}/${fileSize} (${(chunkSize / 1024 / 1024).toFixed(2)}MB) for ${filename}`);
+        this.logger.log(`[${requestId}] 📦 Serving : ${start}-${end}/${fileSize} (${(chunkSize / 1024 / 1024).toFixed(2)}MB) for ${filename}`);
 
-        res.status(206).set({
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start} - ${end} / ${fileSize}`,
           'Content-Length': chunkSize,
+          'Content-Type': mimeType,
+          'ETag': etag,
+          'Last-Modified': lastModified,
+          'Cache-Control': 'public, max-age=14400',
+          'Access-Control-Allow-Origin': '*',
         });
 
         const stream = fs.createReadStream(filePath, { start, end });
         stream.pipe(res);
         await finished(res);
       } else {
-        this.logger.log(`[${requestId}] 📤 Serving full file: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
-        res.setHeader('Content-Length', fileSize);
+        this.logger.log(`[${requestId}] 📤 Serving full file: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': mimeType,
+          'ETag': etag,
+          'Last-Modified': lastModified,
+          'Cache-Control': 'public, max-age=14400',
+          'Access-Control-Allow-Origin': '*',
+        });
+
         const stream = fs.createReadStream(filePath);
         stream.pipe(res);
         await finished(res);
@@ -1207,14 +1221,12 @@ export class FileService implements OnModuleInit {
         this.logger.warn(`[${requestId}] ⚠️ Client disconnected during stream`);
         return;
       }
-      this.logger.error(`[${requestId}] 🛑 Stream error: ${(error as any).message}`);
+      this.logger.error(`[${requestId}] 🛑 Stream error: ${(error as any).message} `);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Internal server error' });
       }
     }
   }
-
-
   async uploadFromUrl(files: Record<string, string>, folderName: string) {
     const results = [];
 
@@ -1222,18 +1234,18 @@ export class FileService implements OnModuleInit {
     let index = 0;
     for (const [key, url] of Object.entries(files)) {
       index++;
-      this.logger.log(`⬇️ [${index}/${Object.keys(files).length}] Starting download: ${key}`);
+      this.logger.log(`⬇️[${index} / ${Object.keys(files).length}] Starting download: ${key} `);
 
       try {
         const head = await axios.head(url);
         const contentType = head.headers['content-type'];
         const ext = getFileExtension(contentType, url);
         const safeName = sanitizeFileName(key);
-        const finalFileName = `${safeName}.${ext}`;
+        const finalFileName = `${safeName}.${ext} `;
         const filePath = path.resolve(uploadPath, finalFileName);
 
         if (fs.existsSync(filePath)) {
-          this.logger.log(`✅ Skipped (Already exists): ${finalFileName}`);
+          this.logger.log(`✅ Skipped(Already exists): ${finalFileName} `);
           results.push({ file: finalFileName, status: 'skipped', reason: 'Already exists' });
           continue;
         }
@@ -1243,15 +1255,15 @@ export class FileService implements OnModuleInit {
         const response = await axios.get(url, { responseType: 'stream' });
         await streamPipeline(response.data, fs.createWriteStream(filePath));
 
-        this.logger.log(`🎉 Downloaded: ${finalFileName}`);
+        this.logger.log(`🎉 Downloaded: ${finalFileName} `);
         results.push({ file: finalFileName, status: 'success' });
       } catch (err) {
-        this.logger.warn(`⚠️ Failed to download ${key}: ${err.message}`);
+        this.logger.warn(`⚠️ Failed to download ${key}: ${err.message} `);
         results.push({ file: key, status: 'failed', reason: err.message });
       }
     }
 
-    this.logger.log(`📦 Download summary - Total: ${Object.keys(files).length}, Success: ${results.filter(r => r.status === 'success').length}, Skipped: ${results.filter(r => r.status === 'skipped').length}, Failed: ${results.filter(r => r.status === 'failed').length}`);
+    this.logger.log(`📦 Download summary - Total: ${Object.keys(files).length}, Success: ${results.filter(r => r.status === 'success').length}, Skipped: ${results.filter(r => r.status === 'skipped').length}, Failed: ${results.filter(r => r.status === 'failed').length} `);
 
     return { results };
   }

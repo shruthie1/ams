@@ -22,7 +22,7 @@ module.exports = {
       ...commonConfig,
       env: {
         ...commonConfig.env,
-        PORT: 443,
+        PORT: 6001,
         clientId: "ams"
       },
       cron_restart: "0 2 * * *"

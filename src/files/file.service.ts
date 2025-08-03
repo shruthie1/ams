@@ -1118,123 +1118,121 @@ export class FileService implements OnModuleInit {
       throw new InternalServerErrorException('Error copying folder');
     }
   }
-  async stream(
-    filename: string,
-    folder: string,
-    req: Request,
-    res: Response
-  ): Promise<void> {
-    const requestId =
-      req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    async stream(
+      filename: string,
+      folder: string,
+      req: Request,
+      res: Response
+    ) {
+      const requestId = req.headers['x-request-id'] ||
+        `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
-    try {
-      const filePath = this.getSafePath(this.config.storagePath, folder, filename);
+      try {
+        const filePath = this.getSafePath(this.config.storagePath, folder, filename);
 
-      if (!fs.existsSync(filePath)) {
-        this.logger.warn(`[${requestId}] ❌ File not found: ${filePath}`);
-        res.status(404).json({ error: 'File not found' });
-        return;
-      }
+        if (!fs.existsSync(filePath)) {
+          this.logger.warn(`[${requestId}] ❌ File not found: ${filePath}`);
+          return res.status(404).json({ error: 'File not found' });
+        }
 
-      await fs.promises.access(filePath, fs.constants.F_OK | fs.constants.R_OK);
-      const stat = await fs.promises.stat(filePath);
+        const stat = await fs.promises.stat(filePath);
+        if (!stat.isFile() || stat.size === 0) {
+          this.logger.warn(`[${requestId}] ❌ Invalid file`);
+          return res.status(400).json({ error: 'Invalid file' });
+        }
 
-      if (!stat.isFile() || stat.size === 0) {
-        this.logger.warn(`[${requestId}] ❌ Invalid or empty file`);
-        res.status(400).json({ error: 'Invalid or empty file' });
-        return;
-      }
+        const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+        const fileSize = stat.size;
+        const rangeHeader = req.headers.range;
+        const etag = `"${stat.mtime.getTime()}-${stat.size}"`;
+        const lastModified = stat.mtime.toUTCString();
 
-      const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+        if (req.headers['if-none-match'] === etag) {
+          return res.status(304).end();
+        }
 
-      if (!mimeType.startsWith('video/')) {
-        this.logger.warn(`[${requestId}] ❌ Invalid content type: ${mimeType}`);
-        res.status(415).json({ error: 'Unsupported media type' });
-        return;
-      }
+        if (req.headers['if-modified-since']) {
+          const clientDate = new Date(req.headers['if-modified-since']);
+          if (clientDate >= new Date(stat.mtime.getTime() - 1000)) {
+            return res.status(304).end();
+          }
+        }
 
-      // Conditional caching headers
-      const etag = `"${stat.mtime.getTime()}-${stat.size}"`;
-      const lastModified = stat.mtime.toUTCString();
-      const clientETag = req.headers['if-none-match'];
-      const ifModifiedSince = req.headers['if-modified-since'];
+        let start = 0;
+        let end = fileSize - 1;
+        let statusCode = 200;
 
-      if (clientETag === etag || (ifModifiedSince && new Date(ifModifiedSince) >= stat.mtime)) {
-        res.status(304).end();
-        return;
-      }
+        if (rangeHeader) {
+          const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+          if (match) {
+            start = match[1] ? parseInt(match[1]) : 0;
+            end = match[2] ? parseInt(match[2]) : fileSize - 1;
 
-      const range = req.headers.range;
-      const fileSize = stat.size;
-      let start = 0;
-      let end = fileSize - 1;
-      let statusCode = 200;
+            // Clamp end to 1 MB max chunk if client didn't specify end
+            const MAX_CHUNK = 1024 * 1024;
+            if (!match[2] && end > start + MAX_CHUNK - 1) {
+              end = start + MAX_CHUNK - 1;
+            }
 
-      if (range) {
-        const match = range.match(/bytes=(\d+)-(\d*)/);
-        if (match) {
-          start = parseInt(match[1], 10);
-          if (match[2]) end = parseInt(match[2], 10);
-          statusCode = 206;
+            if (start >= fileSize || end >= fileSize || start > end) {
+              return res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).json({ error: 'Range not satisfiable' });
+            }
+
+            statusCode = 206;
+          }
+        }
+
+        const contentLength = end - start + 1;
+
+        this.logger.log(`[${requestId}] 📤 Streaming ${filename} [${start}-${end}] (${(contentLength / 1024 / 1024).toFixed(2)} MB)`);
+
+        res.writeHead(statusCode, {
+          'Content-Type': mimeType,
+          'Content-Length': contentLength.toString(),
+          'Accept-Ranges': 'bytes',
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'ETag': etag,
+          'Last-Modified': lastModified,
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges, ETag, Last-Modified, Content-Type',
+        });
+
+        const stream = fs.createReadStream(filePath, {
+          start,
+          end,
+          highWaterMark: 1024 * 1024, // 1 MB buffer size
+        });
+
+        stream.pipe(res);
+
+        stream.on('end', () => {
+          // this.logger.log(`[${requestId}] ✅ Stream finished`);
+        });
+
+        stream.on('error', (err) => {
+          this.logger.error(`[${requestId}] ❌ Stream error:`, err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Stream error' });
+          } else {
+            res.destroy();
+          }
+        });
+
+        req.on('close', () => {
+          // this.logger.warn(`[${requestId}] ⚠️ Client disconnected`);
+          stream.destroy();
+        });
+
+      } catch (error) {
+        this.logger.error(`[${requestId}] ❌ Fatal error:`, error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Internal server error' });
+        } else {
+          res.destroy();
         }
       }
-
-      if (start > end || start >= fileSize) {
-        res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
-        return;
-      }
-
-      const contentLength = end - start + 1;
-
-      // CDN cache + fault tolerance strategy
-      res.status(statusCode);
-      res.set({
-        'Content-Type': mimeType,
-        'Content-Length': contentLength,
-        'Accept-Ranges': 'bytes',
-        'Content-Range': statusCode === 206 ? `bytes ${start}-${end}/${fileSize}` : undefined,
-        'ETag': etag,
-        'Last-Modified': lastModified,
-
-        // Fault tolerant cache strategy
-        'Cache-Control': 'public, max-age=60, stale-while-revalidate=86400, stale-if-error=604800',
-        'Expires': new Date(Date.now() + 60000).toUTCString(), // 1 min fresh
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
-      });
-
-      const stream = fs.createReadStream(filePath, { start, end });
-
-      stream.on('open', () => {
-        this.logger.log(`[${requestId}] 📤 Streaming ${filename} [${start}-${end}]`);
-        stream.pipe(res);
-      });
-
-      stream.on('error', (err) => {
-        this.logger.error(`[${requestId}] ❌ Stream error`, err);
-        if (!res.headersSent) res.status(500).end('Stream error');
-      });
-
-      req.on('close', () => {
-        this.logger.log(`[${requestId}] ⚠️ Client disconnected`);
-        stream.destroy();
-      });
-
-      res.on('error', (error) => {
-        this.logger.error(`[${requestId}] ❌ Response error:`, error);
-        stream.destroy();
-      });
-
-      // Pipe the stream to response
-      stream.pipe(res);
-
-    } catch (error) {
-      this.logger.error(`[${requestId}] ❌ Uncaught error`, error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Internal server error', requestId });
-      }
     }
-  }
 
   async uploadFromUrl(files: Record<string, string>, folderName: string) {
     const results = [];

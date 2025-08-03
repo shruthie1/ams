@@ -35,9 +35,10 @@ async function bootstrap() {
   };
   app.enableCors(corsOptions);
 
-  await app.listen(8000);
+  await app.listen(process.env.PORT || 3000, () => {
+    console.log(`🚀 Application is running on: http://localhost:${process.env.PORT || 3000}`);
+  });
 }
-
 // Add process event handlers
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);

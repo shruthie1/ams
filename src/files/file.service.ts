@@ -1118,14 +1118,20 @@ export class FileService implements OnModuleInit {
       throw new InternalServerErrorException('Error copying folder');
     }
   }
-  async stream(filename: string, folder: string, req: Request, res: Response): Promise<void> {
-    const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  async stream(
+    filename: string,
+    folder: string,
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const requestId =
+      req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
     try {
       const filePath = this.getSafePath(this.config.storagePath, folder, filename);
 
       if (!fs.existsSync(filePath)) {
-        this.logger.error(`[${requestId}] ❌ File not found: ${filename} in folder: ${folder}`);
+        this.logger.warn(`[${requestId}] ❌ File not found: ${filePath}`);
         res.status(404).json({ error: 'File not found' });
         return;
       }
@@ -1140,147 +1146,96 @@ export class FileService implements OnModuleInit {
       }
 
       const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+
       if (!mimeType.startsWith('video/')) {
-        this.logger.warn(`[${requestId}] ❌ Unsupported media type: ${mimeType}`);
-        res.status(415).json({ error: 'Only video files are supported' });
+        this.logger.warn(`[${requestId}] ❌ Invalid content type: ${mimeType}`);
+        res.status(415).json({ error: 'Unsupported media type' });
         return;
       }
 
-      // Generate ETag for caching
+      // Conditional caching headers
       const etag = `"${stat.mtime.getTime()}-${stat.size}"`;
       const lastModified = stat.mtime.toUTCString();
-
-      // Check if client has cached version
       const clientETag = req.headers['if-none-match'];
       const ifModifiedSince = req.headers['if-modified-since'];
 
       if (clientETag === etag || (ifModifiedSince && new Date(ifModifiedSince) >= stat.mtime)) {
-        this.logger.log(`[${requestId}] 📦 Serving cached response (304)`);
         res.status(304).end();
         return;
       }
 
-      // Parse range header for partial content support
       const range = req.headers.range;
       const fileSize = stat.size;
       let start = 0;
       let end = fileSize - 1;
-      let partialContent = false;
+      let statusCode = 200;
 
       if (range) {
-        const rangeMatch = range.match(/bytes=(\d+)-(\d*)/);
-        if (rangeMatch) {
-          start = parseInt(rangeMatch[1], 10);
-          end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : fileSize - 1;
-          partialContent = true;
-
-          // Validate range
-          if (start >= fileSize || end >= fileSize || start > end) {
-            this.logger.warn(`[${requestId}] ❌ Invalid range: ${range}`);
-            res.status(416).set({
-              'Content-Range': `bytes */${fileSize}`,
-            });
-            res.end();
-            return;
-          }
+        const match = range.match(/bytes=(\d+)-(\d*)/);
+        if (match) {
+          start = parseInt(match[1], 10);
+          if (match[2]) end = parseInt(match[2], 10);
+          statusCode = 206;
         }
+      }
+
+      if (start > end || start >= fileSize) {
+        res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
+        return;
       }
 
       const contentLength = end - start + 1;
-      const statusCode = partialContent ? 206 : 200;
 
-      // Set response headers optimized for Cloudflare
-      const headers: Record<string, string | number> = {
+      // CDN cache + fault tolerance strategy
+      res.status(statusCode);
+      res.set({
         'Content-Type': mimeType,
-        'Content-Length': contentLength.toString(),
+        'Content-Length': contentLength,
         'Accept-Ranges': 'bytes',
+        'Content-Range': statusCode === 206 ? `bytes ${start}-${end}/${fileSize}` : undefined,
         'ETag': etag,
         'Last-Modified': lastModified,
-        'Cache-Control': 'public, max-age=31536000, immutable', // 1 year cache
-        'Expires': new Date(Date.now() + 31536000 * 1000).toUTCString(),
 
-        // Cloudflare specific headers
-        'CF-Cache-Status': 'DYNAMIC',
-        'Vary': 'Accept-Encoding',
-
-        // CORS headers if needed
+        // Fault tolerant cache strategy
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=86400, stale-if-error=604800',
+        'Expires': new Date(Date.now() + 60000).toUTCString(), // 1 min fresh
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-        'Access-Control-Allow-Headers': 'Range, If-Range, If-Modified-Since, If-None-Match',
-        'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
-
-        // Security headers
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'SAMEORIGIN',
-      };
-
-      if (partialContent) {
-        headers['Content-Range'] = `bytes ${start}-${end}/${fileSize}`;
-      }
-
-      // Set all headers
-      Object.entries(headers).forEach(([key, value]) => {
-        res.setHeader(key, value);
+        'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
       });
 
-      res.status(statusCode);
+      const stream = fs.createReadStream(filePath, { start, end });
 
-      this.logger.log(
-        `[${requestId}] 🎬 Streaming ${partialContent ? 'partial' : 'full'} content: ` +
-        `${filename} (${start}-${end}/${fileSize} bytes, ${mimeType})`
-      );
-
-      // Create read stream with proper options
-      const streamOptions = {
-        start,
-        end,
-        highWaterMark: 64 * 1024, // 64KB chunks for optimal streaming
-      };
-
-      const readStream = fs.createReadStream(filePath, streamOptions);
-
-      // Handle stream errors
-      readStream.on('error', (error) => {
-        this.logger.error(`[${requestId}] ❌ Stream error:`, error);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Stream error' });
-        }
+      stream.on('open', () => {
+        this.logger.log(`[${requestId}] 📤 Streaming ${filename} [${start}-${end}]`);
+        stream.pipe(res);
       });
 
-      // Handle client disconnect
+      stream.on('error', (err) => {
+        this.logger.error(`[${requestId}] ❌ Stream error`, err);
+        if (!res.headersSent) res.status(500).end('Stream error');
+      });
+
       req.on('close', () => {
-        this.logger.log(`[${requestId}] 🔌 Client disconnected, destroying stream`);
-        readStream.destroy();
-      });
-
-      req.on('aborted', () => {
-        this.logger.log(`[${requestId}] ⚠️ Request aborted, destroying stream`);
-        readStream.destroy();
-      });
-
-      // Handle response finish
-      res.on('finish', () => {
-        this.logger.log(`[${requestId}] ✅ Stream completed successfully`);
+        this.logger.log(`[${requestId}] ⚠️ Client disconnected`);
+        stream.destroy();
       });
 
       res.on('error', (error) => {
         this.logger.error(`[${requestId}] ❌ Response error:`, error);
-        readStream.destroy();
+        stream.destroy();
       });
 
       // Pipe the stream to response
-      readStream.pipe(res);
+      stream.pipe(res);
 
     } catch (error) {
-      this.logger.error(`[${requestId}] ❌ Unexpected error:`, error);
+      this.logger.error(`[${requestId}] ❌ Uncaught error`, error);
       if (!res.headersSent) {
-        res.status(500).json({
-          error: 'Internal server error',
-          requestId
-        });
+        res.status(500).json({ error: 'Internal server error', requestId });
       }
     }
   }
+
   async uploadFromUrl(files: Record<string, string>, folderName: string) {
     const results = [];
 

@@ -1129,13 +1129,12 @@ export class FileService implements OnModuleInit {
         res.status(404).json({ error: 'File not found' });
         return;
       }
-
       await fs.promises.access(filePath, fs.constants.F_OK | fs.constants.R_OK);
       const stat = await fs.promises.stat(filePath);
 
       if (!stat.isFile() || stat.size === 0) {
-        this.logger.warn(`[${requestId}] ❌ Invalid file: not a regular file or empty`);
-        res.status(400).json({ error: 'Invalid or empty video file' });
+        this.logger.warn(`[${requestId}] ❌ Invalid or empty file`);
+        res.status(400).json({ error: 'Invalid or empty file' });
         return;
       }
 
@@ -1148,16 +1147,15 @@ export class FileService implements OnModuleInit {
 
       const fileSize = stat.size;
       const etag = `"${fileSize}-${stat.mtime.getTime()}"`;
-      const lastModified = stat.mtime.toUTCString();
 
-      // Caching headers
       res.setHeader('ETag', etag);
-      res.setHeader('Cache-Control', 'public, max-age=14400'); // 4 hours CDN/browser cache
       res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Content-Type', mimeType);
-      res.setHeader('Last-Modified', lastModified);
-      res.setHeader('Connection', 'keep-alive');
       res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Length,Content-Range,ETag');
+      res.setHeader('Cache-Control', 'public, max-age=14400');
+      res.setHeader('Last-Modified', stat.mtime.toUTCString());
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Connection', 'keep-alive');
 
       if (req.headers['if-none-match'] === etag) {
         this.logger.log(`[${requestId}] ✅ 304 Not Modified`);
@@ -1179,38 +1177,25 @@ export class FileService implements OnModuleInit {
         }
 
         const chunkSize = end - start + 1;
-        this.logger.log(`[${requestId}] 📦 Serving : ${start}-${end}/${fileSize} (${(chunkSize / 1024 / 1024).toFixed(2)}MB) for ${filename}`);
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Content-Length', chunkSize);
 
-        res.writeHead(206, {
-          'Content-Range': `bytes ${start} - ${end} / ${fileSize}`,
-          'Content-Length': chunkSize,
-          'Content-Type': mimeType,
-          'ETag': etag,
-          'Last-Modified': lastModified,
-          'Cache-Control': 'public, max-age=14400',
-          'Access-Control-Allow-Origin': '*',
-        });
+        this.logger.log(`[${requestId}] 📦 Serving bytes: ${start}-${end} of ${filename}`);
 
         const stream = fs.createReadStream(filePath, { start, end });
         stream.pipe(res);
         await finished(res);
-      } else {
-        this.logger.log(`[${requestId}] 📤 Serving full file: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
-
-        res.writeHead(200, {
-          'Content-Length': fileSize,
-          'Content-Type': mimeType,
-          'ETag': etag,
-          'Last-Modified': lastModified,
-          'Cache-Control': 'public, max-age=14400',
-          'Access-Control-Allow-Origin': '*',
-        });
-
-        const stream = fs.createReadStream(filePath);
-        stream.pipe(res);
-        await finished(res);
-        this.logger.log(`[${requestId}] ✅ Full stream completed`);
+        return;
       }
+
+      // No Range header — serve full file
+      this.logger.log(`[${requestId}] 📤 Serving full file: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+      res.setHeader('Content-Length', fileSize);
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+      await finished(res);
+      this.logger.log(`[${requestId}] ✅ Full stream completed`);
 
       req.on('close', () => {
         this.logger.verbose(`[${requestId}] 🚪 Client closed connection`);
@@ -1221,12 +1206,13 @@ export class FileService implements OnModuleInit {
         this.logger.warn(`[${requestId}] ⚠️ Client disconnected during stream`);
         return;
       }
-      this.logger.error(`[${requestId}] 🛑 Stream error: ${(error as any).message} `);
+      this.logger.error(`[${requestId}] 🛑 Stream error: ${(error as any).message}`);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Internal server error' });
       }
     }
   }
+
   async uploadFromUrl(files: Record<string, string>, folderName: string) {
     const results = [];
 

@@ -1,6 +1,6 @@
 // Common configuration for all apps
 const commonConfig = {
-  script: "dist/index.js",
+  script: "dist/main.js",
   autorestart: true,
   max_memory_restart: "300M",
   restart_delay: 5000,

@@ -16,6 +16,22 @@ export const FILE_CONFIG = {
     'image/svg+xml',
     'image/heic',
     'image/heif',
+    // Audio types
+    'audio/mpeg',        // .mp3
+    'audio/mp3',
+    'audio/wav',         // .wav
+    'audio/x-wav',
+    'audio/webm',
+    'audio/ogg',         // .ogg
+    'audio/aac',         // .aac
+    'audio/mp4',         // .m4a
+    'audio/x-m4a',
+    'audio/flac',        // .flac
+    'audio/3gpp',        // .3gp (audio)
+    'audio/3gpp2',       // .3g2 (audio)
+    'audio/amr',
+    'audio/midi',
+    'audio/x-midi',
 
     // Video types
     'video/mp4',

@@ -94,7 +94,7 @@ export class FileController {
       storage: diskStorage({
         destination: (req, file, cb) => {
           try {
-            const folderName = req.params.folder;
+            const folderName = req.params.folder as string;
             const folderPath = getSafePath(UPLOADS_BASE, folderName);
             if (!existsSync(folderPath)) {
               mkdirSync(folderPath, { recursive: true });

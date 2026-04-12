@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLS Adaptive Streaming Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            color: #eee;
+        }
+        video {
+            max-width: 90vw;
+            max-height: 70vh;
+            border-radius: 8px;
+            background: #000;
+        }
+        #info {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #888;
+        }
+        #quality {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #6c6;
+        }
+        #controls {
+            margin-top: 16px;
+        }
+        #qualitySelect {
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>HLS Adaptive Bitrate Streaming</h2>
+    <video id="video" controls autoplay muted></video>
+    <div id="controls">
+        <label for="qualitySelect">Quality: </label>
+        <select id="qualitySelect"><option value="-1">Auto</option></select>
+    </div>
+    <div id="info">Loading...</div>
+    <div id="quality"></div>
+
+    <script>
+        const video = document.getElementById('video');
+        const info = document.getElementById('info');
+        const quality = document.getElementById('quality');
+        const src = 'https://cdn.jsdelivr.net/gh/shruthie1/stream/one/master.m3u8';
+
+        if (Hls.isSupported()) {
+            const hls = new Hls({ debug: false });
+            hls.loadSource(src);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                info.textContent = `Loaded ${data.levels.length} quality levels`;
+                const select = document.getElementById('qualitySelect');
+                data.levels.forEach((level, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = `${level.height}p (${Math.round(level.bitrate / 1000)}kbps)`;
+                    select.appendChild(opt);
+                });
+                select.addEventListener('change', () => {
+                    const val = parseInt(select.value);
+                    hls.currentLevel = val; // -1 = auto, 0+ = fixed level
+                });
+                video.play();
+            });
+
+            hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                const level = hls.levels[data.level];
+                quality.textContent = `Current: ${level.width}x${level.height} @ ${Math.round(level.bitrate / 1000)}kbps`;
+            });
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                info.textContent = `Error: ${data.details}`;
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            video.src = src;
+            video.addEventListener('loadedmetadata', () => {
+                info.textContent = 'Playing with native HLS support';
+                video.play();
+            });
+        } else {
+            info.textContent = 'HLS is not supported in this browser';
+        }
+    </script>
+</body>
+</html>

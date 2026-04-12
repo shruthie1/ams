@@ -292,6 +292,13 @@ export class FileService implements OnModuleInit {
       this.logger.error(`File not found: ${filename} in folder: ${folder}`);
       throw new NotFoundException('File not found');
     }
+    const stats = fs.statSync(filePath);
+    const etag = `"${stats.mtimeMs.toString(36)}-${stats.size.toString(36)}"`;
+    res.set({
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'ETag': etag,
+      'Last-Modified': stats.mtime.toUTCString(),
+    });
     return res.download(filePath);
   }
 
@@ -693,6 +700,13 @@ export class FileService implements OnModuleInit {
       this.logger.error(`File not found: ${filename} in folder: ${folder}`);
       throw new NotFoundException('File not found');
     }
+    const stats = fs.statSync(filePath);
+    const etag = `"${stats.mtimeMs.toString(36)}-${stats.size.toString(36)}"`;
+    res.set({
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'ETag': etag,
+      'Last-Modified': stats.mtime.toUTCString(),
+    });
     return res.sendFile(filePath);
   }
 
@@ -767,6 +781,7 @@ export class FileService implements OnModuleInit {
 
     const stats = fs.statSync(filePath);
     const mimeType = lookup(filePath) || 'application/octet-stream';
+    const etag = `"${stats.mtimeMs.toString(36)}-${stats.size.toString(36)}"`;
 
     // For large files, only show preview if supported
     if (stats.size > VIEW_CONFIG.PREVIEW_SIZE_LIMIT) {
@@ -776,6 +791,12 @@ export class FileService implements OnModuleInit {
         );
       }
     }
+
+    res.set({
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'ETag': etag,
+      'Last-Modified': stats.mtime.toUTCString(),
+    });
 
     try {
       // Handle image previews
@@ -862,14 +883,14 @@ export class FileService implements OnModuleInit {
     }
 
     const mimeType = lookup(filePath) || 'application/octet-stream';
-    // const thumbnailsDir = this.getSafePath(
-    //   this.config.storagePath,
-    //   '.thumbnails',
-    // );
-    // const thumbnailPath = this.getSafePath(
-    //   thumbnailsDir,
-    //   `${folder}_${filename}.jpg`,
-    // );
+    const stats = fs.statSync(filePath);
+    const etag = `"thumb-${stats.mtimeMs.toString(36)}-${stats.size.toString(36)}"`;
+
+    res.set({
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'ETag': etag,
+      'Last-Modified': stats.mtime.toUTCString(),
+    });
 
     try {
       // Handle image thumbnails

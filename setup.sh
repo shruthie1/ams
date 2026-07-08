@@ -21,7 +21,7 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 
 # Environment variables with defaults
-readonly DOMAIN="${DOMAIN:-paidgirl.site}"
+readonly DOMAIN="${DOMAIN:-paidgirls.site}"
 readonly NGINX_SITES_AVAILABLE="${NGINX_SITES_AVAILABLE:-/etc/nginx/sites-available}"
 readonly NGINX_SITES_ENABLED="${NGINX_SITES_ENABLED:-/etc/nginx/sites-enabled}"
 readonly LOG_FILE="${LOG_FILE:-/var/log/app-setup.log}"
